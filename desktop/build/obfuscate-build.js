@@ -15,7 +15,10 @@ const { minify } = require("terser");
 const JavaScriptObfuscator = require("javascript-obfuscator");
 
 const ROOT = path.join(__dirname, "..");
-const SRC_HTML = path.join(ROOT, "src", "barra-gestao-bar.html");
+// Fonte do app: a edição Premium (PC) = app/index.html do repositório.
+// (src/barra-gestao-bar.html é só um reserva antigo, usado se app/ não existir.)
+const PREMIUM_SRC = path.join(ROOT, "..", "app", "index.html");
+const SRC_HTML = fs.existsSync(PREMIUM_SRC) ? PREMIUM_SRC : path.join(ROOT, "src", "barra-gestao-bar.html");
 const GATE_TEMPLATE = path.join(ROOT, "license-gate", "license-gate.template.js");
 const CONFIG_PATH = path.join(ROOT, "build", "license-config.json");
 
