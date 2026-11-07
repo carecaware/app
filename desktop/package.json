@@ -1,6 +1,6 @@
 {
   "name": "barra-gestao-bar",
-  "productName": "Bar Gestão",
+  "productName": "BarFácil",
   "version": "1.0.8",
   "description": "App de gestão de bar (comandas, estoque, vendas)",
   "main": "main/main.js",
@@ -20,7 +20,7 @@
   },
   "build": {
     "appId": "com.bargesta.app",
-    "productName": "Bar Gestão",
+    "productName": "BarFácil",
     "publish": null,
     "directories": {
       "output": "dist-windows",
@@ -48,7 +48,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "artifactName": "Snook-Bar-Setup-${version}.${ext}"
+      "artifactName": "BarFacil-Setup-${version}.${ext}"
     }
   }
 }

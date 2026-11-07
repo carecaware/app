@@ -1,8 +1,8 @@
 {
-  "name": "snook-splash-demo",
-  "productName": "Splash Demo Snook",
+  "name": "barfacil-splash-demo",
+  "productName": "Splash Demo BarFácil",
   "version": "1.0.0",
-  "description": "Splash Demo Snook PC",
+  "description": "Splash Demo BarFácil PC",
   "main": "main/main.js",
   "private": true,
   "scripts": {},
@@ -14,7 +14,7 @@
   },
   "build": {
     "appId": "com.bargesta.splashdemo",
-    "productName": "Splash Demo Snook",
+    "productName": "Splash Demo BarFácil",
     "publish": null,
     "directories": {
       "output": "dist-windows",
@@ -42,8 +42,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "artifactName": "Splash-Demo-Snook-Setup-${version}.${ext}",
-      "shortcutName": "Splash Demo Snook",
+      "artifactName": "Splash-Demo-BarFacil-Setup-${version}.${ext}",
+      "shortcutName": "Splash Demo BarFácil",
       "language": "1046",
       "installerIcon": "assets/installer.ico",
       "uninstallerIcon": "assets/installer.ico",

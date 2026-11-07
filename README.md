@@ -1,10 +1,10 @@
-# Snook Bar
+# BarFácil
 
 | Pasta | O que é |
 |---|---|
 | `app/` | HTML mestre (`index.html`) e `make-editions.py`, que gera as edições (Premium, Básico, Mobile, Demo, Tutorial, Splash) |
-| `desktop/` | Projeto Electron do instalador Windows (Snook Bar) |
-| `splash-demo/` | Instalador Splash Demo Snook PC |
+| `desktop/` | Projeto Electron do instalador Windows (BarFácil) |
+| `splash-demo/` | Instalador Splash Demo BarFácil PC |
 | `supabase/` | Esquema SQL, migrações e a função `validate-license` |
 | `scripts/` | Scripts de lançamento |
 

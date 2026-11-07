@@ -91,7 +91,7 @@ function createWindow() {
     minWidth: 480,
     minHeight: 640,
     autoHideMenuBar: true,
-    title: "SNOOK BAR",
+    title: "BarFácil",
     icon: path.join(__dirname, "..", "assets", "icon.ico"),
     webPreferences: {
       nodeIntegration: false,

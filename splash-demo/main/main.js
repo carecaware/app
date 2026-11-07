@@ -91,7 +91,7 @@ function createWindow() {
     minWidth: 480,
     minHeight: 640,
     autoHideMenuBar: true,
-    title: "Splash Demo Snook",
+    title: "Splash Demo BarFácil",
     icon: path.join(__dirname, "..", "assets", "icon.ico"),
     webPreferences: {
       nodeIntegration: false,
