@@ -1,7 +1,7 @@
 {
   "name": "barra-gestao-bar",
   "productName": "BarFácil",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "App de gestão de bar (comandas, estoque, vendas)",
   "main": "main/main.js",
   "private": true,
