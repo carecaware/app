@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "start": "npm run build:app && electron .",
-    "build:app": "node build/obfuscate-build.js",
+    "build:app": "node build/obfuscate-build.js --windows-only",
     "dist:win": "npm run build:app && electron-builder --win --x64 --publish never",
     "dist:win:unpacked": "npm run build:app && electron-builder --win --x64 --dir",
     "dist:mobile": "node build/obfuscate-build.js --mobile-only"
