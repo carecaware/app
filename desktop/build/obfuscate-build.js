@@ -53,10 +53,12 @@ function extractScript(html) {
 
 function buildGateScript(config, platform) {
   let src = fs.readFileSync(GATE_TEMPLATE, "utf8");
+  // troca TODAS as ocorrências (split/join) — .replace só trocaria a primeira
   src = src
-    .replace("__SUPABASE_URL__", config.supabaseUrl)
-    .replace("__SUPABASE_ANON_KEY__", config.supabaseAnonKey)
-    .replace("__PLATFORM__", platform);
+    .split("__SUPABASE_URL__").join(config.supabaseUrl)
+    .split("__SUPABASE_ANON_KEY__").join(config.supabaseAnonKey)
+    .split("__PLATFORM__").join(platform);
+  if (/__[A-Z_]+__/.test(src)) throw new Error("Sobrou um placeholder no portão de licença.");
   return src;
 }
 
