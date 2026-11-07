@@ -1,0 +1,54 @@
+{
+  "name": "barra-gestao-bar",
+  "productName": "Bar Gestão",
+  "version": "1.0.8",
+  "description": "App de gestão de bar (comandas, estoque, vendas)",
+  "main": "main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "npm run build:app && electron .",
+    "build:app": "node build/obfuscate-build.js",
+    "dist:win": "npm run build:app && electron-builder --win --x64",
+    "dist:win:unpacked": "npm run build:app && electron-builder --win --x64 --dir",
+    "dist:mobile": "node build/obfuscate-build.js --mobile-only"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "terser": "^5.31.0",
+    "javascript-obfuscator": "^4.1.1"
+  },
+  "build": {
+    "appId": "com.bargesta.app",
+    "productName": "Bar Gestão",
+    "publish": null,
+    "directories": {
+      "output": "dist-windows",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main/**/*",
+      "dist-electron-app/**/*",
+      "assets/icon.ico",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "Snook-Bar-Setup-${version}.${ext}"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "name": "snook-splash-demo",
+  "productName": "Splash Demo Snook",
+  "version": "1.0.0",
+  "description": "Splash Demo Snook PC",
+  "main": "main/main.js",
+  "private": true,
+  "scripts": {},
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "terser": "^5.31.0",
+    "javascript-obfuscator": "^4.1.1"
+  },
+  "build": {
+    "appId": "com.bargesta.splashdemo",
+    "productName": "Splash Demo Snook",
+    "publish": null,
+    "directories": {
+      "output": "dist-windows",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main/**/*",
+      "dist-electron-app/**/*",
+      "assets/icon.ico",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "Splash-Demo-Snook-Setup-${version}.${ext}",
+      "shortcutName": "Splash Demo Snook",
+      "language": "1046",
+      "installerIcon": "assets/installer.ico",
+      "uninstallerIcon": "assets/installer.ico",
+      "installerHeaderIcon": "assets/installer.ico",
+      "include": "build/installer.nsh",
+      "runAfterFinish": true,
+      "perMachine": true
+    },
+    "extraResources": []
+  }
+}
