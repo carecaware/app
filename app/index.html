@@ -2133,7 +2133,9 @@
       + '<div class="color-picker" style="left:'+x+'px;top:'+y+'px;">'+swatches+'</div>';
   }
 
+  var TRAD_TOP = {stock:1,sales:1,comandas:1,caixa:1,avulsoProfit:1,reports:1,stockAlerts:1,fiado:1,bilhar:1,metas:1,kitchen:1,drinks:1,musicians:1,settings:1};
   function backArrowBtn(){
+    if(tradOn() && TRAD_TOP[state.screen]) return "";
     return '<button class="back-arrow-btn" data-action="go-back-icon" aria-label="Voltar">'+ICONS.back+'</button>';
   }
   function screenHeader(title, icon){
@@ -2880,6 +2882,7 @@
     html += '<p style="font-size:calc(13px*var(--fs,1));color:var(--text-dim);margin:0 0 12px;">Estas teclas funcionam em qualquer página do app, para você usar menos o mouse.</p>';
     html += card(key('←'), 'Seta para a esquerda: voltar', 'Volta para a página anterior, igual à setinha no canto superior esquerdo da tela. Dentro de um quadro de confirmação (prompt), a seta não é usada: use Cancelar.');
     html += card(key('Enter'), 'Enter: prosseguir', 'Confirma e avança na hora de cadastrar produtos, registrar vendas, abrir o caixa, adicionar clientes e nos quadros de confirmação com um único botão de destaque (como Adicionar, Salvar e OK). Quando há dois botões de destaque, ou o aviso é vermelho ou amarelo, o Enter não confirma: clique no botão desejado.');
+    html += card(key('C')+key('E')+key('V')+key('R')+key('A'), 'Letras: abrir páginas', 'C abre Comandas, E abre Estoque, V abre Vender, R abre Caixa e A abre Avulsos. Não funcionam enquanto você digita em um campo ou com um quadro aberto.');
     html += card(key('→'), 'Seta para a direita: avançar', 'Depois de voltar, a seta para a direita leva de novo à página de onde você saiu.');
     return html;
   }
@@ -4345,6 +4348,17 @@
     var app = document.getElementById("app");
 
     document.onkeydown = function(e){
+      if(state.loggedIn && !state.modal && !e.ctrlKey && !e.altKey && !e.metaKey && e.key && e.key.length===1){
+        var kt = e.target || document.activeElement, tg = kt && kt.tagName;
+        if(tg!=="INPUT" && tg!=="TEXTAREA" && tg!=="SELECT" && !(kt && kt.isContentEditable) && !(kt && kt.closest && kt.closest("#np-float"))){
+          var kd = {c:"comandas", e:"stock", v:"sales", r:"caixa", a:"avulsoProfit"}[e.key.toLowerCase()];
+          if(kd && !(TUTORIAL && document.body.classList.contains("tut-running"))){
+            e.preventDefault();
+            state.hotkeyItemId = null; state.screen = kd; state.forwardScreen=null; state.comandaDetailOrigin=null; state.openDebtsOrigin=null; state.lastEdit=null; clearUndoExpiry(); state.colorPicker=null; state.comandaLastAction=null; clearComandaUndoExpiry(); render();
+            return;
+          }
+        }
+      }
       if(state.loggedIn && /^[1-9]$/.test(e.key) && !e.ctrlKey && !e.altKey && !e.metaKey){
         var hkTag = document.activeElement ? document.activeElement.tagName : "";
         if(state.modal && state.modal.type==="setHotkey"){
@@ -11081,9 +11095,17 @@ var qrcode = function() {
     } else if(!want && s){ s.remove(); }
     if(!want && np.open) npClose();
   }
+  function tutBtnCenter(){
+    var b = document.querySelector(".tut-start-btn"); if(!b) return;
+    var r = null;
+    if(tradOn() && state.screen==="dashboard"){ var c = document.querySelector(".trad-main > *"); if(c) r = c.getBoundingClientRect(); }
+    b.style.left = r ? Math.round(r.left + r.width/2)+"px" : "";
+  }
+  window.addEventListener("resize", function(){ try{ tutBtnCenter(); }catch(e){} });
   function npAfterRender(){
     npEnsureStrip();
     npPlace();
+    tutBtnCenter();
   }
   document.addEventListener("click", function(e){
     var b = e.target.closest && e.target.closest("[data-np]"); if(!b) return;
