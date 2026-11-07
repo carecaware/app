@@ -1,8 +1,8 @@
 // ---------------------------------------------------------------------
 // Tela de ativação de licença.
 // Este arquivo é um TEMPLATE: o script de build (build/obfuscate-build.js)
-// substitui os placeholders __SUPABASE_URL__, __SUPABASE_ANON_KEY__ e
-// windows pelos valores reais antes de injetar isso no HTML final.
+// substitui os marcadores de URL, chave e plataforma (sublinhado duplo, no código abaixo)
+// pelos valores reais antes de injetar isso no HTML final.
 //
 // Como funciona:
 //  - Guarda a chave de licença e um "device_id" (gerado uma vez, aleatório)
