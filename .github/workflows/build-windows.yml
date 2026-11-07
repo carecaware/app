@@ -1,0 +1,44 @@
+name: Build Windows installer
+
+# Roda automaticamente sempre que você enviar (push) para o repositório, e
+# também pode ser disparado manualmente na aba "Actions" do GitHub
+# (botão "Run workflow"). Usa um runner Windows de verdade — gratuito para
+# repositórios do GitHub — então o instalador .exe é gerado nativamente,
+# sem depender de Wine.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Gerar o app (minificado + ofuscado) e o instalador
+        run: npm run dist:win
+        env:
+          # As credenciais do Supabase vêm dos "Secrets" do repositório
+          # (Settings -> Secrets and variables -> Actions), não ficam
+          # expostas no código. O passo abaixo recria o arquivo de config
+          # a partir delas antes do build.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Enviar o instalador como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bar-gestao-windows-installer
+          path: |
+            dist-windows/*.exe
+            dist-windows/*.zip

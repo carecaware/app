@@ -1,0 +1,16 @@
+node_modules/
+dist-*/
+*.exe
+*.apk
+*.aab
+*.keystore
+*.jks
+**/license-config.json
+!**/license-config.example.json
+.env*
+app/index-*.html
+app/*-snook-*.html
+app/snook-*.html
+app/tutorial-*.html
+app/splash-demo-*.html
+app/demonstrativo-*.html
