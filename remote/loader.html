@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BarFácil</title>
+<style>
+  html,body{margin:0;height:100%;background:#15100a;color:#f4ece0;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;}
+  .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;}
+  .box{width:100%;max-width:360px;background:#241a10;border:1px solid #4a3520;border-radius:14px;padding:26px 22px;box-shadow:0 10px 40px rgba(0,0,0,.5);}
+  h1{font-size:19px;margin:0 0 6px;} p{font-size:13px;color:#c9b79c;margin:0 0 18px;line-height:1.5;}
+  input{width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;letter-spacing:1px;border-radius:8px;border:1px solid #4a3520;background:#15100a;color:#f4ece0;margin-bottom:12px;text-transform:uppercase;}
+  input:focus{outline:none;border-color:#e8a33d;}
+  button{width:100%;padding:12px;font-size:14px;font-weight:600;border:none;border-radius:8px;background:#e8a33d;color:#1a140c;cursor:pointer;}
+  button:disabled{opacity:.6;cursor:default;}
+  #msg{margin-top:12px;font-size:13px;min-height:18px;} #msg.err{color:#e07a5f;}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="box" id="box">
+  <h1>BarFácil — acesso de demonstração</h1>
+  <p>Digite a chave de acesso que você recebeu. O aplicativo é carregado do servidor a cada acesso e exige internet.</p>
+  <input id="key" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off">
+  <button id="go">Entrar</button>
+  <div id="msg"></div>
+</div></div>
+<script>
+(function () {
+  var FN = "__SUPABASE_URL__/functions/v1/get-app";
+  var ANON = "__SUPABASE_ANON_KEY__";
+  var LS_KEY = "bf_web_key_v1", LS_DEV = "bf_web_device_v1";
+  var input = document.getElementById("key"), btn = document.getElementById("go"), msg = document.getElementById("msg");
+
+  function deviceId() {
+    var id = null;
+    try { id = localStorage.getItem(LS_DEV); } catch (e) {}
+    if (!id) {
+      id = "web-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      try { localStorage.setItem(LS_DEV, id); } catch (e) {}
+    }
+    return id;
+  }
+  function fmt(raw) {
+    var c = String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, ""), out = [];
+    for (var i = 0; i < c.length; i += 4) out.push(c.slice(i, i + 4));
+    return out.join("-");
+  }
+  function reason(r) {
+    return ({
+      not_found: "Chave não encontrada.",
+      revoked: "Este acesso foi encerrado.",
+      expired: "Este acesso expirou.",
+      wrong_platform: "Esta chave não vale para este acesso.",
+      limit_reached: "Esta chave já está em uso em outro aparelho.",
+      bad_request: "Digite a chave completa."
+    })[r] || "Servidor indisponível no momento. Tente novamente em instantes.";
+  }
+  function fail(t) { btn.disabled = false; msg.className = "err"; msg.textContent = t; }
+
+  function enter(key) {
+    btn.disabled = true; msg.className = ""; msg.textContent = "Carregando o aplicativo…";
+    fetch(FN, {
+      method: "POST", cache: "no-store",
+      headers: { "Content-Type": "application/json", "apikey": ANON, "Authorization": "Bearer " + ANON },
+      body: JSON.stringify({ license_key: key, platform: "web", device_id: deviceId() })
+    }).then(function (r) {
+      var ct = r.headers.get("content-type") || "";
+      if (ct.indexOf("text/html") === 0) {
+        return r.text().then(function (html) {
+          try { localStorage.setItem(LS_KEY, key); } catch (e) {}
+          // o app existe só em memória: substitui esta página e não é gravado em arquivo
+          document.open(); document.write(html); document.close();
+        });
+      }
+      return r.json().then(function (j) { fail(reason(j && j.reason)); });
+    }).catch(function () { fail("Não foi possível conectar. Verifique sua internet e tente de novo."); });
+  }
+
+  input.addEventListener("input", function () { var v = fmt(input.value); if (v !== input.value) input.value = v; });
+  input.addEventListener("keydown", function (e) { if (e.key === "Enter") btn.click(); });
+  btn.addEventListener("click", function () { var k = fmt(input.value); if (k) enter(k); });
+
+  var saved = null; try { saved = localStorage.getItem(LS_KEY); } catch (e) {}
+  if (saved) { input.value = saved; enter(saved); }
+})();
+</script>
+</body>
+</html>

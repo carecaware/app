@@ -25,6 +25,7 @@ const CONFIG_PATH = path.join(ROOT, "build", "license-config.json");
 const args = process.argv.slice(2);
 const mobileOnly = args.includes("--mobile-only");
 const windowsOnly = args.includes("--windows-only");
+const remoteMode = args.includes("--remote");
 
 function loadConfig() {
   // No GitHub Actions não existe o arquivo license-config.json (ele fica
@@ -116,8 +117,30 @@ async function buildTarget(platform, outDir) {
   console.log(`[${platform}] gerado em ${path.relative(ROOT, outDir)}/index.html`);
 }
 
+async function buildRemote() {
+  // Edição "web": o app inteiro, ofuscado e SEM portão de licença, para ficar
+  // guardado no servidor (Supabase) e ser entregue só a quem tem licença.
+  // O carregador (loader.html) é a única parte pública.
+  const config = loadConfig();
+  const html = fs.readFileSync(SRC_HTML, "utf8");
+  const { full, body } = extractScript(html);
+  console.log("[remote] minificando + ofuscando o app...");
+  const appFinal = await minifyAndObfuscate(body);
+  const out = path.join(ROOT, "dist-remote");
+  fs.mkdirSync(out, { recursive: true });
+  fs.writeFileSync(path.join(out, "app.html"),
+    html.replace(full, function () { return `<script>\n${appFinal}\n</script>`; }), "utf8");
+  let loader = fs.readFileSync(path.join(ROOT, "..", "remote", "loader.html"), "utf8");
+  loader = loader.split("__SUPABASE_URL__").join(config.supabaseUrl)
+                 .split("__SUPABASE_ANON_KEY__").join(config.supabaseAnonKey);
+  if (/__[A-Z_]+__/.test(loader)) throw new Error("Sobrou um placeholder no carregador.");
+  fs.writeFileSync(path.join(out, "index.html"), loader, "utf8");
+  console.log("[remote] gerado em dist-remote/ (app.html = enviar ao Supabase; index.html = publicar)");
+}
+
 (async () => {
   if (!windowsOnly) {
+  if (remoteMode) { await buildRemote(); return; }
     await buildTarget("mobile", path.join(ROOT, "dist-mobile"));
   }
   if (!mobileOnly) {
