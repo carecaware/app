@@ -2882,7 +2882,7 @@
     html += '<p style="font-size:calc(13px*var(--fs,1));color:var(--text-dim);margin:0 0 12px;">Estas teclas funcionam em qualquer página do app, para você usar menos o mouse.</p>';
     html += card(key('←'), 'Seta para a esquerda: voltar', 'Volta para a página anterior, igual à setinha no canto superior esquerdo da tela. Dentro de um quadro de confirmação (prompt), a seta não é usada: use Cancelar.');
     html += card(key('Enter'), 'Enter: prosseguir', 'Confirma e avança na hora de cadastrar produtos, registrar vendas, abrir o caixa, adicionar clientes e nos quadros de confirmação com um único botão de destaque (como Adicionar, Salvar e OK). Quando há dois botões de destaque, ou o aviso é vermelho ou amarelo, o Enter não confirma: clique no botão desejado.');
-    html += card(key('C')+key('E')+key('V')+key('R')+key('A'), 'Letras: abrir páginas', 'C abre Comandas, E abre Estoque, V abre Vender, R abre Caixa e A abre Avulsos. Não funcionam enquanto você digita em um campo ou com um quadro aberto.');
+    if(!MOBILE) html += card(key('C')+key('E')+key('V')+key('R')+key('A'), 'Letras: abrir páginas', 'C abre Comandas, E abre Estoque, V abre Vender, R abre Caixa e A abre Avulsos. Não funcionam enquanto você digita em um campo ou com um quadro aberto.');
     html += card(key('→'), 'Seta para a direita: avançar', 'Depois de voltar, a seta para a direita leva de novo à página de onde você saiu.');
     return html;
   }
@@ -4348,7 +4348,7 @@
     var app = document.getElementById("app");
 
     document.onkeydown = function(e){
-      if(state.loggedIn && !state.modal && !e.ctrlKey && !e.altKey && !e.metaKey && e.key && e.key.length===1){
+      if(!MOBILE && state.loggedIn && !state.modal && !e.ctrlKey && !e.altKey && !e.metaKey && e.key && e.key.length===1){
         var kt = e.target || document.activeElement, tg = kt && kt.tagName;
         if(tg!=="INPUT" && tg!=="TEXTAREA" && tg!=="SELECT" && !(kt && kt.isContentEditable) && !(kt && kt.closest && kt.closest("#np-float"))){
           var kd = {c:"comandas", e:"stock", v:"sales", r:"caixa", a:"avulsoProfit"}[e.key.toLowerCase()];
