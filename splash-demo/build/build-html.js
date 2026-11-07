@@ -2,7 +2,7 @@
 const fs=require("fs"),path=require("path");
 const NM="/home/claude/barapp-desktop/node_modules/";
 const {minify}=require(NM+"terser");const JSO=require(NM+"javascript-obfuscator");
-const cfg=JSON.parse(fs.readFileSync("/home/claude/barapp-desktop/build/license-config.json","utf8"));
+const cfg=JSON.parse(fs.readFileSync(__dirname+"/../../desktop/build/license-config.json","utf8"));
 const html=fs.readFileSync(process.argv[2],"utf8");
 const m=html.match(/<script>([\s\S]*)<\/script>/); if(!m) throw new Error("sem script");
 if((html.match(/<script/g)||[]).length!==1) throw new Error("mais de um script");
