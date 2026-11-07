@@ -300,7 +300,8 @@
   /* ---- Layout Tradicional (somente PC Premium) ---- */
   html.trad #app{max-width:none;padding:0;}
   html.trad.has-sub #app{padding-top:var(--sub-h,0px);}
-  .trad-root{display:grid;grid-template-columns:230px minmax(0,1fr) 210px;grid-template-rows:66px minmax(calc(100vh - 66px),auto);min-height:100vh;}
+  .trad-root{display:grid;grid-template-columns:min-content minmax(0,1fr) min-content;grid-template-rows:66px minmax(calc(100vh - 66px),auto);min-height:100vh;}
+  .trad-root.trad-nofeat{grid-template-columns:min-content minmax(0,1fr);}
   .trad-head{grid-column:1/-1;grid-row:1;height:66px;box-sizing:border-box;display:flex;align-items:center;gap:14px;padding:0 22px;border-bottom:1px solid var(--border);background:var(--bg-elev);position:sticky;top:0;z-index:60;}
   .trad-logo{width:42px;height:42px;padding:0;border:none;background:none;cursor:pointer;flex:none;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);display:inline-flex;}
   .trad-logo:hover{filter:brightness(1.12);}
@@ -308,21 +309,20 @@
   .trad-title:hover{color:var(--accent);}
   .trad-tools{position:relative;width:70px;height:34px;margin-left:auto;flex:none;}
   .trad-side{grid-column:1;grid-row:2;position:sticky;top:66px;align-self:start;height:calc(100vh - 66px);box-sizing:border-box;padding:14px 12px;border-right:1px solid var(--border);background:var(--bg-elev);display:flex;flex-direction:column;gap:8px;overflow:auto;}
-  .trad-btn{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;flex:none;box-sizing:border-box;padding:0 16px;background:var(--bg-elev-2);color:var(--text);border:1px solid var(--border);border-radius:12px;font-size:calc(15px*var(--fs,1));font-weight:600;cursor:pointer;text-align:left;font-family:inherit;}
+  .trad-btn{display:flex;align-items:center;gap:10px;width:100%;min-height:58px;flex:none;box-sizing:border-box;padding:6px 12px;background:var(--bg-elev-2);color:var(--text);border:1px solid var(--border);border-radius:12px;font-size:calc(15px*var(--fs,1));font-weight:600;cursor:pointer;text-align:left;font-family:inherit;}
   .trad-btn svg{color:var(--accent);flex:none;width:22px;height:22px;}
+  .trad-btn span{white-space:normal;line-height:1.15;}
   .trad-btn:hover{border-color:var(--accent);}
   .trad-btn.active{border-color:var(--accent);background:var(--accent-soft);}
   .trad-btn.cfg{margin-top:auto;}
-  .trad-main{grid-column:2;grid-row:2;min-width:0;padding:24px 22px 60px;}
-  .trad-main > *{max-width:760px;margin-left:auto;margin-right:auto;}
-  .trad-main > .np-slot{max-width:960px;}
+  .trad-main{grid-column:2;grid-row:2;min-width:0;padding:28px 18px 80px;}
+  .trad-main > *{max-width:604px;margin-left:auto;margin-right:auto;}
   .feat-tabs.trad-feats{position:sticky;left:auto;bottom:auto;top:66px;z-index:auto;grid-column:3;grid-row:2;align-self:start;height:calc(100vh - 66px);box-sizing:border-box;padding:14px 12px;border-left:1px solid var(--border);background:var(--bg-elev);display:flex;flex-direction:column;justify-content:flex-start;gap:10px;overflow:auto;}
-  .trad-feats .feat-tab{width:100%;min-height:58px;flex:none;justify-content:flex-start;gap:12px;padding:0 14px;border:1px solid var(--accent);border-radius:12px;box-shadow:none;font-size:calc(14px*var(--fs,1));font-weight:600;font-family:inherit;text-align:left;}
+  .trad-feats .feat-tab{width:100%;min-height:58px;flex:none;justify-content:flex-start;gap:10px;padding:6px 12px;border:1px solid var(--accent);border-radius:12px;box-shadow:none;font-size:calc(14px*var(--fs,1));font-weight:600;font-family:inherit;text-align:left;}
   .trad-feats .feat-tab:hover,.trad-feats .feat-tab.active{width:100%;background:var(--accent-soft);}
   .trad-feats .feat-tab svg{width:22px;height:22px;flex:none;}
-  .trad-feats .feat-tab span{white-space:normal;line-height:1.2;color:var(--text);}
+  .trad-feats .feat-tab span{white-space:normal;line-height:1.15;color:var(--text);}
   .trad-feats .feat-tab.dragging{width:100%;}
-  .trad-feats .feat-tab.np-btn-tab{border-style:dashed;}
   /* ---- Bloco de notas ---- */
   .np{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--bg-elev);color:var(--text);}
   .np-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 6px 14px;font-size:calc(14px*var(--fs,1));}
@@ -340,11 +340,13 @@
   .np-mirror mark{background:rgba(255,214,10,.42);color:transparent;border-radius:2px;}
   .np-mirror mark.cur{background:rgba(255,140,0,.85);}
   .np-text{background:transparent;color:var(--text);resize:none;outline:none;}
-  .np-slot{height:calc(100vh - 66px - 48px);min-height:420px;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
   #np-float{position:fixed;top:48px;width:360px;min-width:320px;height:min(72vh,640px);min-height:300px;z-index:1500;border:1px solid var(--accent);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.55);overflow:hidden;display:none;background:var(--bg-elev);}
   #np-float.open{display:block;}
-  #np-strip{position:fixed;top:0;right:34px;width:64px;height:6px;background:var(--accent);border-radius:0 0 8px 8px;cursor:pointer;z-index:1600;transition:height .15s ease;opacity:.9;}
-  #np-strip:hover{height:16px;opacity:1;}
+  #np-strip{position:fixed;top:0;right:34px;width:24px;height:26px;cursor:pointer;z-index:1600;transition:height .2s ease;transform-origin:top center;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45));}
+  #np-strip svg{display:block;width:100%;height:100%;}
+  #np-strip:hover{height:46px;animation:npSway .9s ease-in-out infinite alternate;}
+  @keyframes npSway{from{transform:rotate(-4deg);}to{transform:rotate(4deg);}}
+  html.trad #np-strip{right:112px;}
   .feat-row{display:flex;align-items:center;gap:12px;width:100%;padding:12px;margin-bottom:8px;background:var(--bg-elev-2);border:1px solid var(--border);border-radius:10px;color:inherit;font-size:calc(15px*var(--fs,1));cursor:pointer;text-align:left;}
   .feat-row.on{border-color:var(--accent);}
   .feat-ico{color:var(--accent);display:inline-flex;}
@@ -1805,9 +1807,7 @@
       return;
     }
     var html = "";
-    if(state.screen==="notes" && !tradOn()) state.screen = "dashboard";
     if(state.screen==="dashboard") html = tradOn() ? tradHome() : renderDashboard();
-    else if(state.screen==="notes") html = renderNotesScreen();
     else if(state.screen==="stock") html = renderStock();
     else if(state.screen==="stockDetail") html = renderStockDetail();
     else if(state.screen==="sales") html = renderSales();
@@ -1873,7 +1873,6 @@
         if(el.id) _snap.push({id:el.id, v:(el.type==="checkbox"||el.type==="radio")?el.checked:el.value, c:(el.type==="checkbox"||el.type==="radio")});
       });
     }
-    var _npSnap = null; try{ _npSnap = npCapture(); }catch(e){}
     app.innerHTML = html;
     if(_snap) _snap.forEach(function(o){ var el = document.getElementById(o.id); if(!el) return; if(o.c) el.checked = o.v; else if(o.v!==""){ el.value = o.v; if(el.tagName==="SELECT" && el.onchange) el.onchange(); } });
     modalSnapType = state.modal ? state.modal.type : null;
@@ -1882,7 +1881,7 @@
     // mudou de seção (por clique, toque, botão voltar...): sempre abre no topo
     if(lastScreenRendered!==null && state.screen!==lastScreenRendered){ window.scrollTo(0,0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
     lastScreenRendered = state.screen;
-    try{ npAfterRender(_npSnap); }catch(e){}
+    try{ npAfterRender(); }catch(e){}
     bindEvents();
     updateLayoutFixes();
     navTrack();
@@ -10955,27 +10954,28 @@ var qrcode = function() {
     var cfgOn = ["settings","changePassword","hotkeys","navKeys","help"].indexOf(state.screen)>=0;
     return '<nav class="trad-side" aria-label="Menu">'
       + tradSlots().map(function(k){
-          var inf = navDestInfo(k);
+          var inf = navDestInfo(k), lbl = (k==="stock") ? "Estoque" : inf.label;
           var badge = "";
           if(k==="stock"){ var d = dashAlert(); if(d && d.style==="selo") badge = '<span class="nav-badge" style="position:static;margin-left:auto;">'+d.low.length+'</span>'; }
-          return '<button type="button" class="trad-btn'+(tradActive(k)?' active':'')+'" data-action="nav" data-screen="'+inf.screen+'">'+ICONS[inf.icon]+'<span>'+escapeHtml(inf.label)+'</span>'+badge+'</button>';
+          return '<button type="button" class="trad-btn'+(tradActive(k)?' active':'')+'" data-action="nav" data-screen="'+inf.screen+'">'+ICONS[inf.icon]+'<span>'+escapeHtml(lbl)+'</span>'+badge+'</button>';
         }).join("")
-      + '<button type="button" class="trad-btn cfg'+(cfgOn?' active':'')+'" data-action="open-settings">'+ICONS.hamburger+'<span>Configurações</span></button>'
+      + '<button type="button" class="trad-btn cfg'+(cfgOn?' active':'')+'" data-action="open-settings">'+ICONS.hamburger+'<span>Config.</span></button>'
       + '<button type="button" class="trad-btn" data-action="logoff">'+ICONS.door+'<span>Sair</span></button>'
       + '</nav>';
   }
   function tradFeats(){
+    var feats = orderedFeats();
+    if(!feats.length) return "";
     return '<div class="feat-tabs trad-feats">'
-      + orderedFeats().map(function(f){
+      + feats.map(function(f){
           return '<button type="button" class="feat-tab'+(tradActive(f.k)?' active':'')+'" data-action="nav" data-fk="'+f.k+'" data-screen="'+f.screen+'" title="'+f.label+'" aria-label="'+f.label+'">'+ICONS[f.icon]+'<span>'+escapeHtml(f.label)+'</span></button>';
         }).join("")
-      + '<button type="button" class="feat-tab np-btn-tab'+(state.screen==="notes"?' active':'')+'" data-action="nav" data-screen="notes" title="Bloco de notas" aria-label="Bloco de notas">'+ICONS.note+'<span>Bloco de notas</span></button>'
       + '</div>';
   }
   function tradWrap(inner){
-    return '<div class="trad-root">'+tradHead()+tradSide()+'<main class="trad-main">'+inner+'</main>'+tradFeats()+'</div>';
+    var feats = tradFeats();
+    return '<div class="trad-root'+(feats ? '' : ' trad-nofeat')+'">'+tradHead()+tradSide()+'<main class="trad-main">'+inner+'</main>'+feats+'</div>';
   }
-  function renderNotesScreen(){ return '<div class="np-slot"></div>'; }
 
   // ----- bloco de notas -----
   var np = {hist:null, idx:0, q:"", cur:0, tm:null, sv:null, matches:[], open:false};
@@ -11053,7 +11053,7 @@ var qrcode = function() {
     var f = document.getElementById("np-float");
     if(!f || !f.classList.contains("open")) return;
     var W = f.offsetWidth || 360, vw = window.innerWidth;
-    var ref = document.querySelector("#app .modal") || document.getElementById("app");
+    var ref = document.querySelector("#app .modal") || document.querySelector(".trad-main > *") || document.getElementById("app");
     var r = ref ? ref.getBoundingClientRect() : {right:vw/2};
     var left = r.right + 12;
     if(left + W > vw - 8) left = Math.max(8, vw - W - 8); // sem espaço: fica à direita, sobrepondo o modal
@@ -11072,32 +11072,18 @@ var qrcode = function() {
     np.open = false;
   }
   function npEnsureStrip(){
-    var want = !!(state.loggedIn && npAvail() && !tradOn());
+    var want = !!(state.loggedIn && npAvail());
     var s = document.getElementById("np-strip");
     if(want && !s){
       s = document.createElement("div"); s.id = "np-strip"; s.title = "Bloco de notas"; s.setAttribute("role","button"); s.setAttribute("aria-label","Bloco de notas");
+      s.innerHTML = '<svg viewBox="0 0 24 40" preserveAspectRatio="none" aria-hidden="true"><rect x="0" y="0" width="24" height="3" fill="#8A5A2B"/><polygon points="1,3 12,3 12,40" fill="#E5483A"/><polygon points="12,3 23,3 12,40" fill="#F2C230"/><polygon points="4,6 20,6 12,33" fill="none" stroke="#FFF3CF" stroke-width="1.2" stroke-dasharray="3 2" vector-effect="non-scaling-stroke"/></svg>';
       s.addEventListener("click", function(){ if(np.open) npClose(); else npOpen(); });
       document.body.appendChild(s);
     } else if(!want && s){ s.remove(); }
     if(!want && np.open) npClose();
   }
-  function npCapture(){
-    var a = document.activeElement;
-    if(a && a.classList && (a.classList.contains("np-text") || a.classList.contains("np-q")) && a.closest(".np-slot"))
-      return {cls:a.classList.contains("np-text") ? ".np-text" : ".np-q", s:a.selectionStart, e:a.selectionEnd, top:a.scrollTop};
-    return null;
-  }
-  function npAfterRender(snap){
+  function npAfterRender(){
     npEnsureStrip();
-    var slot = document.querySelector(".np-slot");
-    if(slot){
-      slot.innerHTML = npHtml(false);
-      var root = slot.querySelector(".np"); npWire(root);
-      if(snap){
-        var el = root.querySelector(snap.cls);
-        if(el){ el.focus(); try{ el.setSelectionRange(snap.s, snap.e); }catch(e){} el.scrollTop = snap.top; if(snap.cls===".np-text") npPaint(root, false); }
-      }
-    }
     npPlace();
   }
   document.addEventListener("click", function(e){
