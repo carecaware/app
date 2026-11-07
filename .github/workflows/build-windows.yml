@@ -1,18 +1,21 @@
-name: Build Windows installer
+name: Build e publicação (Windows)
 
-# Roda automaticamente sempre que você enviar (push) para o repositório, e
-# também pode ser disparado manualmente na aba "Actions" do GitHub
-# (botão "Run workflow"). Usa um runner Windows de verdade — gratuito para
-# repositórios do GitHub — então o instalador .exe é gerado nativamente,
-# sem depender de Wine.
+# - Ao enviar uma tag de versão (ex.: v1.0.9, criada por scripts/release.sh),
+#   gera o instalador e o PUBLICA no repositório público "releases", de onde
+#   os apps instalados baixam a atualização.
+# - Também pode ser disparado manualmente na aba Actions ("Run workflow"):
+#   nesse caso só gera o instalador como arquivo de teste (não publica).
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
   workflow_dispatch: {}
 
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
     steps:
       - name: Baixar o código
         uses: actions/checkout@v4
@@ -22,23 +25,43 @@ jobs:
         with:
           node-version: 20
 
+      - name: Conferir que a tag bate com a versão do app
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VER=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$VER" ]; then echo "Tag $TAG diferente de package.json $VER"; exit 1; fi
+
       - name: Instalar dependências
         run: npm install
 
       - name: Gerar o app (minificado + ofuscado) e o instalador
         run: npm run dist:win
         env:
-          # As credenciais do Supabase vêm dos "Secrets" do repositório
-          # (Settings -> Secrets and variables -> Actions), não ficam
-          # expostas no código. O passo abaixo recria o arquivo de config
-          # a partir delas antes do build.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
-      - name: Enviar o instalador como artifact
+      - name: Guardar o instalador como arquivo do build
         uses: actions/upload-artifact@v4
         with:
-          name: bar-gestao-windows-installer
+          name: barfacil-windows
           path: |
-            dist-windows/*.exe
-            dist-windows/*.zip
+            desktop/dist-windows/*.exe
+            desktop/dist-windows/*.blockmap
+            desktop/dist-windows/latest.yml
+
+      - name: Publicar no repositório de releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          # token com permissão de escrita SÓ no repositório carecaware/releases
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo carecaware/releases \
+            --title "BarFácil ${GITHUB_REF_NAME#v}" \
+            --notes "BarFácil ${GITHUB_REF_NAME#v} — veja o histórico no CHANGELOG." \
+            dist-windows/BarFacil-Setup-*.exe \
+            dist-windows/BarFacil-Setup-*.exe.blockmap \
+            dist-windows/latest.yml

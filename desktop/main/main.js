@@ -10,6 +10,7 @@ const fs = require("fs");
 const os = require("os");
 const crypto = require("crypto");
 const { execFileSync } = require("child_process");
+const updater = require("./updater");
 
 // ---------------------------------------------------------------------
 // Identificador estável do computador (para o limite de dispositivos da
@@ -133,7 +134,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  createWindow();
+  const mainWin = createWindow();
+  updater.setup(() => (mainWin.isDestroyed() ? null : mainWin));
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
