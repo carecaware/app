@@ -300,7 +300,7 @@
   /* ---- Layout Tradicional (somente PC Premium) ---- */
   html.trad #app{max-width:none;padding:0;}
   html.trad.has-sub #app{padding-top:var(--sub-h,0px);}
-  .trad-root{display:grid;grid-template-columns:min-content minmax(0,1fr) min-content;grid-template-rows:66px minmax(calc(100vh - 66px),auto);min-height:100vh;}
+  .trad-root{display:grid;grid-template-columns:min-content minmax(0,1fr);grid-template-rows:66px minmax(calc(100vh - 66px),auto);min-height:100vh;}
   .trad-root.trad-nofeat{grid-template-columns:min-content minmax(0,1fr);}
   .trad-head{grid-column:1/-1;grid-row:1;height:66px;box-sizing:border-box;display:flex;align-items:center;gap:14px;padding:0 22px;border-bottom:1px solid var(--border);background:var(--bg-elev);position:sticky;top:0;z-index:60;}
   .trad-logo{width:42px;height:42px;padding:0;border:none;background:none;cursor:pointer;flex:none;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4);display:inline-flex;}
@@ -317,12 +317,14 @@
   .trad-btn.cfg{margin-top:auto;}
   .trad-main{grid-column:2;grid-row:2;min-width:0;padding:28px 18px 80px;}
   .trad-main > *{max-width:604px;margin-left:auto;margin-right:auto;}
-  .feat-tabs.trad-feats{position:sticky;left:auto;bottom:auto;top:66px;z-index:auto;grid-column:3;grid-row:2;align-self:start;height:calc(100vh - 66px);box-sizing:border-box;padding:14px 12px;border-left:1px solid var(--border);background:var(--bg-elev);display:flex;flex-direction:column;justify-content:flex-start;gap:10px;overflow:auto;}
-  .trad-feats .feat-tab{width:100%;min-height:58px;flex:none;justify-content:flex-start;gap:10px;padding:6px 12px;border:1px solid var(--accent);border-radius:12px;box-shadow:none;font-size:calc(14px*var(--fs,1));font-weight:600;font-family:inherit;text-align:left;}
-  .trad-feats .feat-tab:hover,.trad-feats .feat-tab.active{width:100%;background:var(--accent-soft);}
-  .trad-feats .feat-tab svg{width:22px;height:22px;flex:none;}
-  .trad-feats .feat-tab span{white-space:normal;line-height:1.15;color:var(--text);}
-  .trad-feats .feat-tab.dragging{width:100%;}
+  .feat-tabs.trad-feats{position:static;left:auto;bottom:auto;top:auto;z-index:auto;flex:1 1 0;min-width:0;margin:0 34px 0 14px;padding:0;height:50px;box-sizing:border-box;background:none;border:none;box-shadow:none;display:flex;flex-direction:row;align-items:stretch;justify-content:flex-start;gap:8px;overflow:visible;container-type:inline-size;}
+  .trad-gap{flex:1 1 0;}
+  .trad-feats .feat-tab{flex:0 1 150px;min-width:0;width:auto;height:100%;min-height:0;justify-content:flex-start;gap:8px;padding:4px 10px;border:1px solid var(--accent);border-radius:12px;box-shadow:none;font-size:clamp(10px,calc(.95vw*var(--fs,1)),14px);font-weight:600;font-family:inherit;text-align:left;overflow:hidden;}
+  .trad-feats .feat-tab:hover,.trad-feats .feat-tab.active{width:auto;background:var(--accent-soft);}
+  .trad-feats .feat-tab svg{width:clamp(14px,1.6vw,22px);height:clamp(14px,1.6vw,22px);flex:none;}
+  .trad-feats .feat-tab span{white-space:normal;line-height:1.1;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .trad-feats .feat-tab.dragging{width:auto;}
+  @container (max-width:600px){ .trad-feats .feat-tab span{display:none;} .trad-feats .feat-tab{justify-content:center;padding:2px 4px;} .trad-feats .feat-tab svg{width:20px;height:20px;} }
   /* ---- Bloco de notas ---- */
   .np{display:flex;flex-direction:column;height:100%;min-height:0;background:var(--bg-elev);color:var(--text);}
   .np-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 6px 14px;font-size:calc(14px*var(--fs,1));}
@@ -10954,12 +10956,13 @@ var qrcode = function() {
     var banner = (da && da.style==="faixa" && !alertBannerHidden()) ? alertBannerHtml(da.low.map(function(i){ return i.name; }), true) : "";
     return banner + renderDailyLogCard();
   }
-  function tradHead(){
+  function tradHead(feats){
     var t = dashTools();
     var name = validTitle(data.title);
     return '<header class="trad-head">'
       + '<button type="button" class="trad-logo" data-action="go-dashboard" title="Início" aria-label="Início">'+TRAD_LOGO+'</button>'
       + '<h1 class="trad-title" id="trad-title" data-action="trad-title" title="Clique para mudar o nome do bar">'+escapeHtml(name)+'</h1>'
+      + (feats || '<div class="trad-gap"></div>')
       + '<div class="trad-tools">'+t.size+t.mute+'</div>'
       + '</header>';
   }
@@ -10986,8 +10989,7 @@ var qrcode = function() {
       + '</div>';
   }
   function tradWrap(inner){
-    var feats = tradFeats();
-    return '<div class="trad-root'+(feats ? '' : ' trad-nofeat')+'">'+tradHead()+tradSide()+'<main class="trad-main">'+inner+'</main>'+feats+'</div>';
+    return '<div class="trad-root">'+tradHead(tradFeats())+tradSide()+'<main class="trad-main">'+inner+'</main></div>';
   }
 
   // ----- bloco de notas -----
@@ -11214,11 +11216,12 @@ var qrcode = function() {
       var tab = e.target.closest(".feat-tabs:not(.bar) .feat-tab[data-fk]"); if(!tab) return;
       var col = tab.parentNode, tabs = Array.prototype.slice.call(col.querySelectorAll(".feat-tab[data-fk]"));
       if(tabs.length<2) return;
-      D = {tab:tab, tabs:tabs, y0:e.clientY, moving:false, id:e.pointerId, rects:tabs.map(function(t){ var r = t.getBoundingClientRect(); return {top:r.top, h:r.height}; }), idx:tabs.indexOf(tab), j:tabs.indexOf(tab)};
+      var H = col.classList.contains("trad-feats");
+      D = {tab:tab, tabs:tabs, H:H, y0:H ? e.clientX : e.clientY, moving:false, id:e.pointerId, rects:tabs.map(function(t){ var r = t.getBoundingClientRect(); return H ? {top:r.left, h:r.width} : {top:r.top, h:r.height}; }), idx:tabs.indexOf(tab), j:tabs.indexOf(tab)};
     }, true);
     document.addEventListener("pointermove", function(e){
       if(!D || e.pointerId!==D.id) return;
-      var dy = e.clientY - D.y0;
+      var dy = (D.H ? e.clientX : e.clientY) - D.y0;
       if(!D.moving){
         if(Math.abs(dy)<6) return;
         D.moving = true; D.tab.classList.add("dragging");
@@ -11228,7 +11231,7 @@ var qrcode = function() {
       var R = D.rects, top = R[0].top, bot = R[R.length-1].top + R[R.length-1].h;
       var cur = R[D.idx], cy = cur.top + cur.h/2 + dy;
       cy = Math.max(top + cur.h/2, Math.min(bot - cur.h/2, cy));
-      D.tab.style.transform = "translateY("+(cy - cur.h/2 - cur.top)+"px)";
+      D.tab.style.transform = (D.H?"translateX(":"translateY(")+(cy - cur.h/2 - cur.top)+"px)";
       // posição de destino: quantas das outras abas têm o centro acima do ponteiro
       var j = 0, oi = 0;
       D.tabs.forEach(function(t, i){ if(i===D.idx) return; var c = R[i].top + R[i].h/2; if(c < cy) j++; });
@@ -11238,7 +11241,7 @@ var qrcode = function() {
       D.tabs.forEach(function(t, i){
         if(i===D.idx) return;
         var oidx = i<D.idx ? i : i-1, slot = oidx<j ? oidx : oidx+1;
-        t.style.transform = "translateY("+(R[slot].top - R[i].top)+"px)";
+        t.style.transform = (D.H?"translateX(":"translateY(")+(R[slot].top - R[i].top)+"px)";
       });
       e.preventDefault();
     }, true);
