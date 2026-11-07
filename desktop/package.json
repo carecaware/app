@@ -8,7 +8,7 @@
   "scripts": {
     "start": "npm run build:app && electron .",
     "build:app": "node build/obfuscate-build.js",
-    "dist:win": "npm run build:app && electron-builder --win --x64",
+    "dist:win": "npm run build:app && electron-builder --win --x64 --publish never",
     "dist:win:unpacked": "npm run build:app && electron-builder --win --x64 --dir",
     "dist:mobile": "node build/obfuscate-build.js --mobile-only"
   },
@@ -21,7 +21,13 @@
   "build": {
     "appId": "com.bargesta.app",
     "productName": "BarFácil",
-    "publish": null,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "carecaware",
+        "repo": "releases"
+      }
+    ],
     "directories": {
       "output": "dist-windows",
       "buildResources": "assets"
@@ -50,5 +56,8 @@
       "createStartMenuShortcut": true,
       "artifactName": "BarFacil-Setup-${version}.${ext}"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
   }
 }
