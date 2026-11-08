@@ -2072,8 +2072,7 @@
   }
   // telas mais fundas: casinha (volta ao início); telas de primeiro nível: seta
   function endBackBtn(){
-    return (tradOn() && TRAD_TOP[state.screen]) ? ''
-      : '<button class="hamburger-btn" data-action="go-dashboard" title="Início" aria-label="Voltar ao início">'+ICONS.home+'</button>';
+    return '';
   }
   function renderHamburgerButton(){
     // fora da tela inicial os botões ficam no fim do conteúdo (nunca por cima dos modais)
@@ -2984,7 +2983,7 @@
       txt:function(){ return "Por fim, o preço de venda: o seu preço final por item, o que o cliente vai pagar. Confirme em OK e o estoque é registrado."; }, more:"Você pode mudar esse preço depois, a qualquer momento."},
     "edit-price":{les:"Estoque", scr:"stock", tgt:function(){ return tutMadeItemBtn("open-edit-price"); }, txt:function(){ return "Caso, a qualquer momento, você queira alterar o preço atual do produto, "+tutV().toLowerCase()+" no botão $."; }},
     "edit-price-form":{les:"Estoque", hole:"modal", done:function(){ return !state.modal; }, txt:function(){ return "Aqui você muda o preço que cobra do cliente: digite o novo valor e confirme com OK, ou cancele se não quiser alterar."; }},
-    "home":{les:"Navegação", tgt:'[data-action="go-dashboard"]', skipIf:function(){ return state.screen==="dashboard" && !state.modal; }, txt:function(){ return tutV()+" no botão da casinha para retornar à tela inicial."+(MOBILE && tutSeen().backN<1 ? " Você também pode usar o botão voltar do seu celular." : ""); }, more:"O botão voltar do celular (ou a tecla Esc, no computador) leva você de volta à última tela onde você esteve."},
+    "home":{les:"Navegação", info:true, label:"Continuar", skipIf:function(){ return state.screen==="dashboard" && !state.modal; }, txt:function(){ return MOBILE ? "Para voltar uma tela, use o botão voltar do seu celular. Na tela inicial, ele pergunta se você quer sair do app. Quando quiser, continue." : "Para voltar uma tela, use a tecla Esc do teclado. Quando quiser, continue."; }, more:"O botão voltar do celular (ou a tecla Esc, no computador) leva você de volta à última tela onde você esteve."},
     "go-caixa":{les:"Caixa", scr:"dashboard", tgt:tutNavSel("caixa"), txt:function(){ return tutV()+" em Caixa. Todo dia o ideal é começar por aqui."; }},
     "open-caixa":{les:"Caixa", req:true, scr:"caixa", hole:"fn", tgt:function(){ var e=document.getElementById("caixa-fundo"); return e ? e.closest(".card") : null; }, skipIf:function(){ return !!caixaData().open; }, done:function(){ return !!caixaData().open; },
       txt:function(sc,lv){ return "Digite o troco inicial (o dinheiro que já está na gaveta) e "+tutV().toLowerCase()+" em Abrir caixa."+(lv===3?" Lembre-se de fechar o caixa no fim do expediente.":""); },
@@ -3016,7 +3015,7 @@
     "client-notes-open":{les:"Comandas", scr:"comandas", tgt:function(){ return tutClientEl('[data-action="open-client-notes"]'); }, txt:function(){ return "Agora o Bloco de anotações: "+tutV().toLowerCase()+" nele para registrar observações sobre o cliente."; }},
     "client-notes-type":{les:"Comandas", free:true, enter:function(){ tutTypeNote("o cliente esqueceu uma mochila com um celular dentro"); }, done:function(){ return !state.notesModal; }, txt:function(){ return "Veja um exemplo simples de anotação. Ela pode ser editada à vontade. Se quiser, experimente o recurso, ou "+tutV().toLowerCase()+" fora do bloco de notas para prosseguir."; }},
     "client-open":{les:"Comandas", scr:"comandas", tgt:function(){ return tutClientEl(".name"); }, txt:function(){ var c = tutMadeClient(); return tutV()+" no nome "+(c ? "de <b>"+escapeHtml(c.name)+"</b>" : "do cliente que você registrou")+" para abrir a comanda dele."; }},
-    "cmd-view":{les:"Comandas", scr:"comandaDetail", tgt:'[data-action="go-dashboard"]', lite:function(){ var e = document.querySelector(".tut-ph"); return e ? e.closest(".card") : null; }, txt:function(){ var c = tutMadeClient(), nm = c ? escapeHtml(c.name) : "este cliente"; return "Aqui aparecerão os produtos da comanda de "+nm+". Como nenhuma compra foi feita por "+nm+", não há nada a mostrar por enquanto. "+tutV()+" no ícone da casinha para voltar à tela inicial. Você também poderia usar a seta no canto superior esquerdo"+(MOBILE ? "" : " (ou a seta para a esquerda do teclado)")+" para voltar página por página."; }},
+    "cmd-view":{les:"Comandas", scr:"comandaDetail", info:true, label:"Continuar", lite:function(){ var e = document.querySelector(".tut-ph"); return e ? e.closest(".card") : null; }, txt:function(){ var c = tutMadeClient(), nm = c ? escapeHtml(c.name) : "este cliente"; return "Aqui aparecerão os produtos da comanda de "+nm+". Como nenhuma compra foi feita por "+nm+", não há nada a mostrar por enquanto. Para voltar página por página, use o botão voltar do celular"+(MOBILE ? "" : " (ou a tecla Esc, no computador)")+". Quando quiser, continue."; }},
     "go-settings":{les:"Configurações", scr:"dashboard", tgt:'[data-action="open-settings"]', skipIf:function(){ return state.screen==="settings"; }, txt:function(){ return tutV()+" em Config. para abrir as configurações."; }},
     "feat-open":{les:"Recursos", scr:"settings", tgt:'[data-action="open-features"]', txt:function(){ return tutV()+" em Recursos Personalizados: aqui você liga as ferramentas extras do app."; }, more:"Cada recurso ligado vira uma aba nova na tela inicial."},
     "feat-reports":{les:"Recursos", tgt:'.modal-backdrop [data-action="toggle-feature"][data-key="reports"]', skipIf:function(){ return featOn("reports"); }, txt:function(){ return "Ligue Relatórios: gráficos e rankings de vendas e lucro."; }},
@@ -5033,10 +5032,19 @@
 
     var ais = document.getElementById("alert-item-search");
     if(ais) ais.addEventListener("input", function(){
-      var q = normalizeSearchStr(ais.value);
-      Array.prototype.forEach.call(document.querySelectorAll(".al-item-row"), function(r){
+      var q = normalizeSearchStr(ais.value).trim();
+      var rows = Array.prototype.slice.call(document.querySelectorAll(".al-item-row"));
+      rows.forEach(function(r, i){ if(r.getAttribute("data-i0")==null) r.setAttribute("data-i0", i); });
+      rows.forEach(function(r){
         r.style.display = (!q || normalizeSearchStr(r.getAttribute("data-name")||"").indexOf(q)>=0) ? "" : "none";
       });
+      var par = rows.length ? rows[0].parentNode : null;
+      if(par && rows.every(function(r){ return r.parentNode===par; })){
+        rows.sort(function(a, b){
+          var pa = q && normalizeSearchStr(a.getAttribute("data-name")||"").trim().indexOf(q)===0 ? 0 : 1, pb = q && normalizeSearchStr(b.getAttribute("data-name")||"").trim().indexOf(q)===0 ? 0 : 1;
+          return pa!==pb ? pa-pb : (+a.getAttribute("data-i0"))-(+b.getAttribute("data-i0"));
+        }).forEach(function(r){ par.appendChild(r); });
+      }
     });
     var ccount = document.getElementById("modal-caixa-count");
     if(ccount) ccount.addEventListener("input", function(){
@@ -10511,6 +10519,7 @@ var qrcode = function() {
   }
   function navBack(){
     var prev = navStack.pop();
+    while(prev && prev.screen==="quickSale" && state.screen!=="quickSale") prev = navStack.pop();
     if(!prev){ goBackFromCurrentScreen(); return; }
     var leaving = state.screen;
     NAV_CTX.forEach(function(k){ state[k] = prev.ctx[k]; });
@@ -10530,7 +10539,7 @@ var qrcode = function() {
     if(screen==="comandaDetail"){ state.screen=state.comandaDetailOrigin||"comandas"; state.comandaDetailOrigin=null; render(); return; }
     if(screen==="openDebts"){ state.screen=state.openDebtsOrigin||"dashboard"; state.openDebtsOrigin=null; render(); return; }
     if(screen==="reportProduct" || screen==="curve"){ state.screen="reports"; render(); return; }
-    if(screen==="soldProduct"){ state.screen="sales"; render(); return; }
+    if(screen==="soldProduct" || screen==="quickSale"){ if(screen==="quickSale") state.qs = null; state.screen="sales"; render(); return; }
     if(screen==="musicianDetail"){ state.screen="musicians"; render(); return; }
     if(screen==="musicCompare"){ state.screen = state.musFrom==="reports" ? "reports" : "musicians"; render(); return; }
     if(screen==="priceHistory" && state.phFromReports){ state.phFromReports=false; state.screen="reports"; render(); return; }
@@ -10557,10 +10566,16 @@ var qrcode = function() {
   function normalizeSearchStr(s){
     return (s||"").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
   }
+  // quem COMEÇA com o que foi digitado vem primeiro; depois quem só contém (ordem original mantida)
+  function searchPrefixFirst(list, q, nameOf){
+    var a = [], b = [];
+    list.forEach(function(x){ (normalizeSearchStr(nameOf(x)).trim().indexOf(q)===0 ? a : b).push(x); });
+    return a.concat(b);
+  }
   function stockSearchMatches(query){
     var q = normalizeSearchStr(query).trim();
     if(!q) return [];
-    return data.items.filter(function(it){ return normalizeSearchStr(it.name).indexOf(q)!==-1; });
+    return searchPrefixFirst(data.items.filter(function(it){ return normalizeSearchStr(it.name).indexOf(q)!==-1; }), q, function(it){ return it.name; });
   }
   function scrollToStockItem(id){
     var row = document.getElementById("stock-item-row-"+id);
@@ -10602,7 +10617,7 @@ var qrcode = function() {
   function clientSearchMatches(query){
     var q = normalizeSearchStr(query).trim();
     if(!q) return [];
-    return activeClients().filter(function(c){ return normalizeSearchStr(c.name).indexOf(q)!==-1; });
+    return searchPrefixFirst(activeClients().filter(function(c){ return normalizeSearchStr(c.name).indexOf(q)!==-1; }), q, function(c){ return c.name; });
   }
   function scrollToClientRow(id){
     var row = document.getElementById("comanda-client-row-"+id);
@@ -10880,7 +10895,8 @@ var qrcode = function() {
   function qsNorm(t){ return String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(); }
   function qsMatches(){
     var f = qsNorm(state.qs && state.qs.search).trim();
-    return data.items.filter(function(i){ return i.sellPrice!=null && (!f || qsNorm(i.name).indexOf(f)>=0); });
+    var l = data.items.filter(function(i){ return i.sellPrice!=null && (!f || qsNorm(i.name).indexOf(f)>=0); });
+    return f ? searchPrefixFirst(l, f, function(i){ return i.name; }) : l;
   }
   function qsOptionsHtml(){
     var q = state.qs, m = qsMatches();
@@ -10910,7 +10926,7 @@ var qrcode = function() {
         + '<select id="qs-item">'+qsOptionsHtml()+'</select></div>'
         + '<div class="field" style="max-width:80px;"><label>Qtd</label><input id="qs-qty" type="number" min="1" value="'+qn+'"></div></div>'
         + '<div class="qs-dots" id="qs-dots">'+[1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<button type="button" class="qs-dot'+(n<=qn?' on':'')+'" data-action="qs-dot" data-n="'+n+'" tabindex="-1" onmousedown="event.preventDefault()" aria-label="Quantidade '+n+'"></button>'; }).join("")+'</div>'
-        + '<button class="btn secondary" style="width:100%;margin-bottom:10px;" data-action="qs-add">Add Item  (ENTER)</button>';
+        + '<button class="btn secondary" style="width:100%;margin-bottom:10px;" data-action="qs-add">Adicionar Item  (ENTER)</button>';
     }
     if(q.lines.length){
       html += q.lines.map(function(l, i){
