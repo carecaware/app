@@ -581,6 +581,7 @@
   .tut-build .mus-card:hover h2{color:var(--accent);}
   .tut-start-btn{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:54;background:#d62020;color:#fff;border:none;border-radius:999px;padding:12px 22px;font:inherit;font-weight:700;font-size:calc(14px*var(--fs,1));cursor:pointer;white-space:nowrap;animation:tutStartPulse 1.3s ease-in-out infinite;}
   .tut-start-btn:hover{background:#ec2a2a;}
+  .tut-start-btn,button.tut-start-btn[data-action]{touch-action:none !important;user-select:none;-webkit-user-select:none;}
   body.tut-running .tut-start-btn{display:none;}
   @keyframes tutStartPulse{0%,100%{box-shadow:0 0 0 0 rgba(214,32,32,.7);transform:translateX(-50%) scale(1);}50%{box-shadow:0 0 0 12px rgba(214,32,32,0);transform:translateX(-50%) scale(1.07);}}
   .tut-start-btn.m{bottom:calc(76px + env(safe-area-inset-bottom,0px));}
@@ -3371,13 +3372,13 @@
         : "Isto é um passo a passo de como usar o app. Você pode começar agora ou então deixar para depois.",
       btns:[{label:"Começar", fn:tutBegin},{label:"Agora Não", sec:true, fn:tutPause}]});
   }
-  function tutWherePrompt(extra){
+  function tutWherePrompt(extra, force){
     var sn = tutSeen();
-    if(tutRT.viaCap){ showToast((extra ? extra+" " : "")+"Tutorial pausado. Para retomar: Configurações → chapéu de professor.", 3000); return; }
-    if(sn.informed){ showToast((extra ? extra+" " : "")+"Tutorial pausado. Para retomar: Configurações → chapéu de professor.", 3500); return; }
+    if(!force && tutRT.viaCap){ showToast((extra ? extra+" " : "")+"Tutorial pausado. Para retomar: Configurações → chapéu de professor.", 3000); return; }
+    if(!force && sn.informed){ showToast((extra ? extra+" " : "")+"Tutorial pausado. Para retomar: Configurações → chapéu de professor.", 3500); return; }
     sn.informed = true; saveData();
     var btns = [{label:"Ok", fn:function(){ tutSetPhase(null); }}];
-    if(!sn.shown) btns.push({label:"Me mostre onde fica", sec:true, fn:tutDemoStart});
+    if(!sn.shown || force) btns.push({label:"Me mostre onde fica", sec:true, fn:tutDemoStart});
     tutPrompt({text:"Para retomar o Tutorial, basta ir até as Configurações e clicar no Chapéu de Professor ao lado da interrogação, no topo direito.", btns:btns});
   }
   function tutAskExit(){
@@ -11276,6 +11277,40 @@ var qrcode = function() {
     } else if(!want && s){ s.remove(); }
     if(!want && np.open) npClose();
   }
+  // segurar (PC: 2,5 s) ou arrastar até a borda (celular) esconde o botão Começar tutorial
+  (function(){
+    var g = null;
+    function hide(){
+      var b = g && g.el; clearTimeout(g && g.timer); g = null;
+      data.tutBtnUsed = true; data.tutBtnAlways = false; saveData();
+      tutRT.viaCap = false; tutRT.suppressClick = true; setTimeout(function(){ tutRT.suppressClick = false; }, 400);
+      if(b) b.style.display = "none";
+      render();
+      setTimeout(function(){ tutPhaseWhere(); }, 250);
+    }
+    function tutPhaseWhere(){ tutSetPhase(null); tutWherePrompt("", true); }
+    document.addEventListener("pointerdown", function(e){
+      var b = e.target.closest && e.target.closest(".tut-start-btn"); if(!b || e.button>0) return;
+      g = {el:b, x:e.clientX, y:e.clientY, moved:false, timer:null};
+      if(!MOBILE) g.timer = setTimeout(function(){ if(g) hide(); }, 2500);
+    });
+    document.addEventListener("pointermove", function(e){
+      if(!g || !MOBILE) return;
+      var dx = e.clientX-g.x, dy = e.clientY-g.y;
+      if(Math.abs(dx)+Math.abs(dy) > 8){ g.moved = true; g.el.style.transition = "none"; g.el.style.transform = "translate(calc(-50% + "+dx+"px),"+dy+"px)"; }
+      var m = 22;
+      if(g.moved && (e.clientX<m || e.clientX>innerWidth-m || e.clientY<m || e.clientY>innerHeight-m)) hide();
+    });
+    function end(){
+      if(!g) return; clearTimeout(g.timer);
+      if(g.moved){ tutRT.suppressClick = true; setTimeout(function(){ tutRT.suppressClick = false; }, 400); g.el.style.transform = ""; g.el.style.transition = ""; }
+      g = null;
+    }
+    document.addEventListener("pointerup", end); document.addEventListener("pointercancel", end);
+    document.addEventListener("click", function(e){
+      if(tutRT.suppressClick && e.target.closest && e.target.closest(".tut-start-btn")){ e.stopImmediatePropagation(); e.preventDefault(); }
+    }, true);
+  })();
   function tutBtnCenter(){
     var b = document.querySelector(".tut-start-btn"); if(!b) return;
     var r = null;
