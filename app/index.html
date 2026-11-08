@@ -675,7 +675,7 @@
   .undo-btn{position:fixed;bottom:20px;right:20px;display:flex;align-items:center;gap:7px;background:var(--bg-elev-2);border:1px solid var(--border);color:var(--text);padding:10px 16px;border-radius:999px;font-size:calc(13px*var(--fs,1));font-weight:500;box-shadow:var(--shadow);z-index:55;}
   .undo-btn:hover{border-color:var(--accent);color:var(--accent);}
 
-  .back-sphere{float:left;margin:-3px 10px -10px 0;padding:0;border:none;background:none;cursor:pointer;line-height:0;border-radius:50%;transition:transform .15s ease,filter .15s ease;}
+  .back-sphere{float:left;margin:-1px 8px -6px 0;padding:0;border:none;background:none;cursor:pointer;line-height:0;border-radius:50%;transition:transform .15s ease,filter .15s ease;}
   @media (hover:hover){ .back-sphere:hover{transform:scale(1.12);filter:brightness(1.1);} }
   .back-sphere:active{transform:scale(.94);}
   .back-arrow-btn{display:inline-flex;align-items:center;justify-content:center;background:none;border:none;padding:4px 4px 4px 0;margin:0 0 6px 0;color:var(--text-dim);cursor:pointer;border-radius:6px;}
@@ -2210,7 +2210,7 @@
   }
 
   var TRAD_TOP = {quickSale:1,stock:1,sales:1,comandas:1,caixa:1,avulsoProfit:1,reports:1,stockAlerts:1,fiado:1,bilhar:1,metas:1,kitchen:1,drinks:1,musicians:1,settings:1};
-  var BACK_SPHERE = '<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><defs><mask id="bsm" maskUnits="userSpaceOnUse" x="0" y="0" width="28" height="28"><rect width="28" height="28" fill="#fff"/><path d="M20 14H8.5M13.5 8.8L8.3 14l5.2 5.2" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><circle cx="14" cy="14" r="13" fill="#F2C230" stroke="#B88A0A" stroke-width="1.2" mask="url(#bsm)"/></svg>';
+  var BACK_SPHERE = '<svg width="22" height="22" viewBox="0 0 28 28" aria-hidden="true"><defs><mask id="bsm" maskUnits="userSpaceOnUse" x="0" y="0" width="28" height="28"><rect width="28" height="28" fill="#fff"/><path d="M20 14H8.5M13.5 8.8L8.3 14l5.2 5.2" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><circle cx="14" cy="14" r="13" fill="#F2C230" stroke="#B88A0A" stroke-width="1.2" mask="url(#bsm)"/></svg>';
   // botão voltar: esfera amarela do logotipo com seta vazada, ao lado do título de cada seção
   function backArrowBtn(){
     return '<button type="button" class="back-sphere" data-action="go-back-icon" aria-label="Voltar uma página" title="Voltar">'+BACK_SPHERE+'</button>';
@@ -8382,7 +8382,7 @@ var qrcode = function() {
       return '<h3>Gastos Fixos Mensais</h3>'
         + (isAdmin() ? '<button class="btn secondary" style="width:100%;margin-bottom:8px;" data-action="fx-rent">Aluguel'+(f.rent ? ' · '+fmtBRL(f.rent.amount)+' (dia '+f.rent.day+')' : '')+'</button>'
         + '<button class="btn secondary" style="width:100%;margin-bottom:8px;" data-action="fx-staff">Funcionários'+(tot ? ' ('+tot+')' : '')+'</button>' : '')
-        + '<button class="btn secondary" style="width:100%;margin-bottom:12px;" data-action="fx-hire">Contratações'+(th ? ' ('+th+')' : '')+'</button>'
+        + '<button class="btn secondary" style="width:100%;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px;" data-action="fx-hire">Contratações'+(th ? ' ('+th+')' : '')+'<span style="display:inline-flex;color:var(--accent);">'+ICONS.shirtTie+'</span></button>'
         + '<div class="actions"><button class="btn btn-confirm-enter" data-action="modal-cancel">Fechar</button></div>';
     }
     if(m.type==="fixedRent"){
