@@ -222,9 +222,10 @@
   .btn-row.sale-row3{gap:8px;}
   .btn-row.sale-row3 .btn{padding:12px 8px;font-size:calc(16.8px*var(--fs,1));line-height:1.15;min-width:0;}
   .btn-row.sale-row3 .btn.qs-btn{flex:.7;margin-left:20px;font-weight:400;}
-  .qs-dots{display:flex;justify-content:space-between;gap:4px;margin:2px 0 12px;}
-  .qs-dot{width:calc(26px*var(--fs,1));height:calc(26px*var(--fs,1));flex:none;border-radius:50%;border:2px solid var(--accent);background:transparent;padding:0;cursor:pointer;}
-  .qs-dot.on{background:var(--accent);}
+  .qs-dots{display:flex;justify-content:space-between;gap:4px;margin:2px 0 12px;padding:10px 14px 0;}
+  .qs-dot{position:relative;width:calc(20px*var(--fs,1));height:calc(20px*var(--fs,1));flex:none;border-radius:50%;border:1.5px solid var(--accent);background:transparent;padding:0;cursor:pointer;}
+  .qs-dot::after{content:"";position:absolute;inset:3px;border-radius:50%;background:transparent;transition:background .12s ease;}
+  .qs-dot.on::after{background:var(--accent);}
   .qr-box{display:flex;justify-content:center;margin:12px 0 6px;}
   .qr-box > div{background:#fff;padding:8px;border-radius:10px;line-height:0;}
   .qr-sub{text-align:center;font-size:calc(13px*var(--fs,1));color:var(--text-dim);margin-bottom:10px;}
