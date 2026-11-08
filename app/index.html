@@ -635,7 +635,7 @@
   #rot-block{display:none;position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483647;background:#0b1f14;color:#f2c744;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:24px;font:600 18px/1.35 system-ui,sans-serif;}
   #rot-block svg{width:64px;height:64px;animation:rotHint 2.2s ease-in-out infinite;}
   @keyframes rotHint{0%,30%{transform:rotate(90deg);}60%,100%{transform:rotate(0deg);}}
-  @media (orientation:landscape) and (pointer:coarse) and (hover:none){ #rot-block{display:flex;} body > *:not(#rot-block){visibility:hidden !important;} }
+  html.rot-land #rot-block{display:flex;} html.rot-land body > *:not(#rot-block){visibility:hidden !important;}
   .tut-arrow{position:fixed;z-index:3;pointer-events:none;width:22px;height:22px;color:var(--accent);animation:tutBlink 1.4s steps(1,end) infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));}
   .tut-arrow.gone{display:none;}
   @keyframes tutBlink{0%{opacity:1;}50%{opacity:0;}}
@@ -995,6 +995,29 @@
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", function(){ i18n.init(); }); else i18n.init();
   var LANG_NAMES = {pt:"Português", en:"English", es:"Español"};
   var LANG_OPEN = false;
+  // tela deitada de verdade: usa a orientação do APARELHO (o teclado na tela encolhe a janela e não deve contar como giro)
+  (function(){
+    function land(){
+      try{
+        if(!(matchMedia("(pointer:coarse)").matches && matchMedia("(hover:none)").matches)) return false;
+        var t = screen.orientation && screen.orientation.type;
+        if(t) return t.indexOf("landscape")===0;
+        return screen.width > screen.height;
+      }catch(e){ return false; }
+    }
+    function upd(){
+      var a = document.activeElement, typing = !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+      var l = land();
+      // digitando (teclado aberto): nunca passa a "deitado" por causa do encolhimento da janela
+      if(typing && l && !document.documentElement.classList.contains("rot-land")) return;
+      document.documentElement.classList.toggle("rot-land", l);
+    }
+    upd();
+    window.addEventListener("orientationchange", function(){ setTimeout(upd, 150); });
+    try{ screen.orientation.addEventListener("change", function(){ setTimeout(upd, 150); }); }catch(e){}
+    window.addEventListener("resize", function(){ setTimeout(upd, 150); });
+    document.addEventListener("focusout", function(){ setTimeout(upd, 300); });
+  })();
   try{ if(screen.orientation && screen.orientation.lock) screen.orientation.lock("portrait").catch(function(){}); }catch(e){}
   function langPicker(){
     var others = ["pt","en","es"].filter(function(l){ return l!==LANG; });
