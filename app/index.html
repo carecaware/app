@@ -2617,6 +2617,15 @@
       html += '<div class="empty">Nenhum cliente cadastrado ainda.</div>';
     } else {
       var cl = activeClients().slice();
+      var cf = state.cmFilter || "all";
+      if(cf==="bilhar" && !featOn("bilhar")) cf = "all";
+      if(cf==="late" && !featOn("fiado")) cf = "all";
+      var lateIds = {};
+      if(cf==="late"){ var lmin = fiadoCfg().days || 7; fiadoList().forEach(function(x){ if(x.days>=lmin) lateIds[x.c.id] = 1; }); }
+      if(cf==="open") cl = cl.filter(clientHasOpenDebt);
+      else if(cf==="clear") cl = cl.filter(function(c){ return !clientHasOpenDebt(c); });
+      else if(cf==="bilhar") cl = cl.filter(function(c){ return !!c.bilhar; });
+      else if(cf==="late") cl = cl.filter(function(c){ return !!lateIds[c.id]; });
       if(featOn("bilhar") && state.comandaBilharFirst){
         var isP = function(c){ return c.bilhar && clientHasOpenDebt(c); };
         cl = cl.filter(isP).concat(cl.filter(function(c){ return !isP(c); }));
@@ -2630,9 +2639,14 @@
           + (can("cmdDel") && canMod(c) ? '<button class="icon-btn danger-hover" data-action="open-delete-client" data-id="'+c.id+'" title="Apagar cliente">'+ICONS.x+'</button>' : '')
           + '</div>';
       }).join("");
+      var fOpts = [["all","Todos"],["open","Em aberto"],["clear","Sem dívida"]];
+      if(featOn("bilhar")) fOpts.push(["bilhar","Bilhar"]);
+      if(featOn("fiado")) fOpts.push(["late","Inadimplentes"]);
       html += '<div class="card"><div class="card-head"><h2>Clientes</h2>'
         + (featOn("bilhar") ? '<button type="button" class="chip'+(state.comandaBilharFirst?' active':'')+'" data-action="toggle-bilhar-first" title="Comandas de bilhar com valor pendente no topo">Bilhar pendente no topo</button>' : '')
-        + '</div>'+rows+'</div>';
+        + '</div>'
+        + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+fOpts.map(function(o){ return '<button type="button" class="chip'+(cf===o[0]?' active':'')+'" data-action="cm-filter" data-f="'+o[0]+'">'+o[1]+'</button>'; }).join("")+'</div>'
+        + (rows || '<div class="empty">Nenhum cliente neste filtro.</div>')+'</div>';
     }
     return html;
   }
@@ -4761,6 +4775,7 @@
       else if(action==="metas-del-month"){ var mtd = metasData(); mtd.hidden = mtd.hidden || []; var dym = el.getAttribute("data-ym"); if(mtd.hidden.indexOf(dym)<0) mtd.hidden.push(dym); saveData(); render(); }
       else if(action==="toggle-hide-profit"){ state.hideProfit = !state.hideProfit; try{ localStorage.setItem("barapp_hide_profit", state.hideProfit?"1":"0"); }catch(e){} render(); }
       else if(action==="bil-to-receive"){ state.comandaBilharFirst = true; state.screen = "comandas"; state.forwardScreen=null; state.comandaDetailOrigin=null; state.openDebtsOrigin=null; render(); }
+      else if(action==="cm-filter"){ state.cmFilter = el.getAttribute("data-f"); render(); }
       else if(action==="toggle-bilhar-first"){ state.comandaBilharFirst = !state.comandaBilharFirst; render(); }
       else if(action==="avulso-clean-open"){ state.modal = {type:"avulsoClean", days:15}; render(); }
       else if(action==="avulso-clean-days"){ if(state.modal && state.modal.type==="avulsoClean"){ state.modal.days = parseInt(el.getAttribute("data-days"),10)||15; render(); } }
