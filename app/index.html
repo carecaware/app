@@ -11914,6 +11914,19 @@ var qrcode = function() {
     }
     navBack();
   }
+  // PROVISÓRIO (celular): um toque no fundo da tela, fora de cartões, botões e campos, volta uma tela.
+  // Para desligar, troque BG_TAP_BACK por false.
+  var BG_TAP_BACK = true;
+  document.addEventListener("click", function(e){
+    if(!BG_TAP_BACK || !MOBILE || !state.loggedIn || state.modal || state.notesModal || state.screen==="dashboard") return;
+    if(TUTORIAL && document.body.classList.contains("tut-running")) return;
+    var t = e.target; if(!t || !t.closest) return;
+    if(t.closest("button, input, select, textarea, a, label, [data-action], [data-tut], .card, .item-row, .hist-line, .nav-btn, .modal-backdrop, #np-float, #np-strip, #tut-root, #bil-alarm, .rp-scroll, .sold-tabs, .sale-row, svg")) return;
+    if(!t.closest("#app, body") ) return;
+    var a = document.activeElement; if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    if(state.screen==="avulsoProfit" && state.avulsoSel && state.avulsoSel.length) return; // esse toque já desfaz a comanda em criação
+    navBack();
+  });
   try{ history.replaceState({barBase:true}, ""); pushTrap(); }catch(e){}
   // O Chrome/Android ignora entradas de histórico criadas sem nenhum toque do usuário, e o botão
   // nativo "voltar" passaria direto por elas, saindo do app. Por isso, no primeiro toque/tecla
