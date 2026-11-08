@@ -883,6 +883,7 @@
   var DEMO = false;
   var TUTORIAL = false;
   var SPLASH = false;
+  var NOAVU = false; // edição "sem avulsas": sem o botão/seção Avulsos e sem o cliente Avulso
   var SPLASH_IMG1 = "";
   var SPLASH_IMG2 = "";
   var MAX_QR = EDITION==="basic" ? 1 : 5;
@@ -2212,8 +2213,8 @@
   var TRAD_TOP = {quickSale:1,stock:1,sales:1,comandas:1,caixa:1,avulsoProfit:1,reports:1,stockAlerts:1,fiado:1,bilhar:1,metas:1,kitchen:1,drinks:1,musicians:1,settings:1};
   var BACK_SPHERE = '<svg width="22" height="22" viewBox="0 0 28 28" aria-hidden="true"><defs><mask id="bsm" maskUnits="userSpaceOnUse" x="0" y="0" width="28" height="28"><rect width="28" height="28" fill="#fff"/><path d="M20 14H8.5M13.5 8.8L8.3 14l5.2 5.2" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><circle cx="14" cy="14" r="13" fill="#F2C230" stroke="#B88A0A" stroke-width="1.2" mask="url(#bsm)"/></svg>';
   // botão voltar: esfera amarela do logotipo com seta vazada, ao lado do título de cada seção
-  function backArrowBtn(){
-    return '<button type="button" class="back-sphere" data-action="go-back-icon" aria-label="Voltar uma página" title="Voltar">'+BACK_SPHERE+'</button>';
+  function backArrowBtn(inline){
+    return '<button type="button" class="back-sphere" data-action="go-back-icon" aria-label="Voltar uma página" title="Voltar"'+(inline ? ' style="float:none;margin:0 8px 0 0;vertical-align:middle;flex:none;"' : '')+'>'+BACK_SPHERE+'</button>';
   }
   function screenHeader(title, icon){
     return backArrowBtn() + '<h2 style="font-size:calc(18px*var(--fs,1));margin-bottom:18px;'+(icon?'display:flex;align-items:center;gap:8px;':'')+'">'+escapeHtml(title)+(icon?'<span style="display:inline-flex;color:var(--accent);">'+ICONS[icon]+'</span>':'')+'</h2>';
@@ -2544,7 +2545,7 @@
     var html = screenHeader("Vendas", "cart");
 
     var selectedItemId = (state.lastSaleItemId && findItem(state.lastSaleItemId)) ? state.lastSaleItemId : (data.items[0] && data.items[0].id);
-    var selectedClientId = (state.lastSaleClientId && findClient(state.lastSaleClientId)) ? state.lastSaleClientId : "";
+    var selectedClientId = (state.lastSaleClientId && findClient(state.lastSaleClientId)) ? state.lastSaleClientId : (NOAVU && activeClients()[0] ? activeClients()[0].id : "");
     var itemOptions = data.items.map(function(it){ return '<option value="'+it.id+'"'+(it.id===selectedItemId?' selected':'')+'>'+escapeHtml(it.name)+'</option>'; }).join("");
     var clientOptions = activeClients().map(function(c){ return '<option value="'+c.id+'"'+(c.id===selectedClientId?' selected':'')+'>'+escapeHtml(c.name)+'</option>'; }).join("");
     var selectedItem = findItem(selectedItemId) || data.items[0];
@@ -2557,7 +2558,7 @@
         + '<div class="field" style="max-width:80px;"><label>Qtd</label><input id="sale-qty" type="number" min="1" value="1"></div>'
         + '</div>'
         + '<div class="field"><label>Preço de venda por item (R$)</label><input id="sale-price" inputmode="decimal" placeholder="Ex: 12,50" value="'+defaultPrice+'"></div>'
-        + '<div class="field"><label>Cliente</label><select id="sale-client"><option value=""'+(selectedClientId===""?' selected':'')+'>***Avulso***</option>'+clientOptions+'</select></div>'
+        + '<div class="field"><label>Cliente</label><select id="sale-client">'+(NOAVU ? '' : '<option value=""'+(selectedClientId===""?' selected':'')+'>***Avulso***</option>')+clientOptions+'</select></div>'
         + '<div class="btn-row sale-row3">'
         + '<button class="btn" data-action="register-sale">Registrar Venda</button>'
         + '<button class="btn secondary" data-action="undo-sale">Desfazer Venda</button>'
@@ -2688,12 +2689,12 @@
       html += '<div class="empty" style="padding:0 0 10px;text-align:left;color:var(--text-dim);">Pendências de '+(fl.length===1 ? (f0===todayISO() ? 'hoje' : fmtDateShort(f0)) : fmtDateShort(f1)+' – '+fmtDateShort(f0))+'</div>';
     }
     var avulsoPend = dFil ? dFil.avu : Math.max(0, data.sales.reduce(function(acc,sl){ return isAvulsoPending(sl) ? acc + sl.qty*sl.sellPrice : acc; }, 0) - avulsoOpenAbatido());
-    if(avulsoPend>0){
+    if(avulsoPend>0 && !NOAVU){
       html += '<div class="card"><div class="item-row"><span class="name" data-action="nav" data-screen="avulsoProfit">***Avulso***</span>'
         + '<span class="num">'+fmtBRL(avulsoPend)+'</span></div></div>';
     }
     if(openClients.length===0){
-      if(avulsoPend<=0) html += '<div class="empty">Nenhum cliente com comanda em aberto no momento.</div>';
+      if(avulsoPend<=0 || NOAVU) html += '<div class="empty">Nenhum cliente com comanda em aberto no momento.</div>';
     } else {
       var rows = openClients.map(function(c){
         return '<div class="item-row">'
@@ -2844,7 +2845,7 @@
   }
 
   function renderAvulsoProfit(){
-    var html = backArrowBtn() + '<div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;display:flex;align-items:center;gap:8px;">Vendas Avulsas <span style="display:inline-flex;color:var(--accent);">'+ICONS.moneyBag+'</span></h2>'
+    var html = '<div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;display:flex;align-items:center;gap:8px;">'+backArrowBtn(1)+'Vendas Avulsas <span style="display:inline-flex;color:var(--accent);">'+ICONS.moneyBag+'</span></h2>'
       + '<button type="button" data-action="avu-bot" aria-label="Ajuda" title="Ajuda" style="background:none;border:none;font-size:calc(22px*var(--fs,1));line-height:1;padding:0 2px;cursor:pointer;color:var(--text-dim);">'+(state.avuBot ? '🤖' : ICO_INFO)+'</button>'
       + (state.avuBot ? '<div data-action="avu-bot-next" style="display:flow-root;position:absolute;right:0;top:32px;z-index:5;max-width:270px;background:var(--bg-elev-2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:calc(13px*var(--fs,1));line-height:1.4;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;">'
         + ({1:'Para criar uma comanda de vendas avulsas, role a tela até a seção de <b>Vendas</b> (aqui mesmo, um pouco abaixo) e clique em <b>um ou mais produtos</b> com pagamento em status <b>[pendente]</b>. Depois, volte ao topo da tela para encontrar a comanda prontinha para imprimir!',
@@ -3039,7 +3040,7 @@
   function renderHotkeysScreen(){
     var html = screenHeader("Atalhos de Teclado");
     if(!MOBILE){
-      html = backArrowBtn() + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;">Atalhos de Teclado</h2><button type="button" class="icon-btn" data-action="open-nav-keys" title="Atalhos de navegação" aria-label="Atalhos de navegação" style="color:var(--accent);">'+ICONS.arrows4+'</button></div>';
+      html = '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;">'+backArrowBtn(1)+'Atalhos de Teclado</h2><button type="button" class="icon-btn" data-action="open-nav-keys" title="Atalhos de navegação" aria-label="Atalhos de navegação" style="color:var(--accent);">'+ICONS.arrows4+'</button></div>';
     }
     if(data.items.length===0){ return html + '<div class="empty">Nenhum produto cadastrado.</div>'; }
     // products with a shortcut come first, ordered 1 -> 9; the rest keep their order
@@ -3948,7 +3949,7 @@
   }
 
   function renderSettings(){
-    var html = backArrowBtn() + '<div class="end-btns" style="justify-content:space-between;align-items:flex-end;margin:0 0 18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;line-height:1.2;">Configurações</h2><span style="display:flex;gap:8px;">'+(TUTORIAL ? '<button class="hamburger-btn" style="z-index:auto;" data-action="open-tutorial" title="Tutorial" aria-label="Tutorial">'+ICONS.tutorial+'</button>' : '')+'<button class="hamburger-btn" style="z-index:auto;" data-action="open-help" title="Ajuda" aria-label="Ajuda">'+ICONS.help+'</button>'+langPicker()+'</span></div>';
+    var html = '<div class="end-btns" style="justify-content:space-between;align-items:flex-end;margin:0 0 18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;line-height:1.2;">'+backArrowBtn(1)+'Configurações</h2><span style="display:flex;gap:8px;">'+(TUTORIAL ? '<button class="hamburger-btn" style="z-index:auto;" data-action="open-tutorial" title="Tutorial" aria-label="Tutorial">'+ICONS.tutorial+'</button>' : '')+'<button class="hamburger-btn" style="z-index:auto;" data-action="open-help" title="Ajuda" aria-label="Ajuda">'+ICONS.help+'</button>'+langPicker()+'</span></div>';
     var settingsBtns = [];
     if(isAdmin()) settingsBtns.push('<div class="settings-row">'+settingsBtn(ICONS.importIcon, "Importar Dados", "import-data")+settingsBtn(ICONS.exportIcon, "Exportar Dados", "export-data")+'</div>');
     settingsBtns.push(settingsBtn(ICONS.lock, pwOffFor(state.role)?"Definir Senha":"Trocar/Remover Senha", "open-change-password"));
@@ -4531,7 +4532,7 @@
       if(!MOBILE && state.loggedIn && !state.modal && !e.ctrlKey && !e.altKey && !e.metaKey && e.key && e.key.length===1){
         var kt = e.target || document.activeElement, tg = kt && kt.tagName;
         if(tg!=="INPUT" && tg!=="TEXTAREA" && tg!=="SELECT" && !(kt && kt.isContentEditable) && !(kt && kt.closest && kt.closest("#np-float"))){
-          var kd = {c:"comandas", e:"stock", v:"sales", s:"caixa", a:"avulsoProfit"}[e.key.toLowerCase()];
+          var kd = {c:"comandas", e:"stock", v:"sales", s:"caixa", a:(NOAVU ? null : "avulsoProfit")}[e.key.toLowerCase()];
           if(kd && !(TUTORIAL && document.body.classList.contains("tut-running"))){
             e.preventDefault();
             state.hotkeyItemId = null; state.screen = kd; state.forwardScreen=null; state.comandaDetailOrigin=null; state.openDebtsOrigin=null; state.lastEdit=null; clearUndoExpiry(); state.colorPicker=null; state.comandaLastAction=null; clearComandaUndoExpiry(); render();
@@ -4812,6 +4813,8 @@
       else if(action==="open-caixa-close"){ state.modal = {type:"caixaClose"}; render(); focusModalInput(); }
       else if(action==="modal-submit-caixa-move"){ submitCaixaMove(); }
       else if(action==="modal-submit-caixa-close"){ submitCaixaClose(); }
+      else if(action==="cx-toggle-q"){ state.cxQueryOpen = (state.cxQueryOpen===false); render(); }
+      else if(action==="cx-toggle-histcard"){ state.caixaHistCollapsed = !state.caixaHistCollapsed; if(state.caixaHistCollapsed) state.caixaHistOpen = {}; render(); }
       else if(action==="caixa-toggle-hist"){ var chid = el.getAttribute("data-id"); state.caixaHistOpen = state.caixaHistOpen || {}; state.caixaHistOpen[chid] = !state.caixaHistOpen[chid]; render(); }
       else if(action==="caixa-print"){ var chh = caixaData().history.find(function(x){ return x.id===el.getAttribute("data-id"); }); if(chh) printHtmlReceipt(caixaReceipt(chh)); }
       else if(action==="open-features"){ state.modal = {type:"featuresPicker"}; render(); }
@@ -5083,12 +5086,7 @@
     };
 
     app.onchange = function(e){
-      if(e.target.id==="cx-from" || e.target.id==="cx-to"){
-        var fv = (document.getElementById("cx-from")||{}).value, tv = (document.getElementById("cx-to")||{}).value;
-        if(fv) state.cxFrom = fv; if(tv) state.cxTo = tv;
-        if(e.target.id==="cx-from" && fv && (!state.cxTo || state.cxTo<fv)) state.cxTo = fv;
-        cxRange(); render(); return;
-      }
+      if(e.target.id==="cx-from" || e.target.id==="cx-to"){ cxDateChanged(e.target.id); return; }
       if(e.target.classList && e.target.classList.contains("mus-edit")){
         var mg = musData().gigs.find(function(g){ return g.id===e.target.getAttribute("data-id"); });
         if(!mg) return;
@@ -8523,7 +8521,7 @@ var qrcode = function() {
   function fmtDiff(n){ return (n>0.004?"+":(n<-0.004?"−":"")) + fmtBRL(Math.abs(n)); }
   function renderCaixa(){
     var cx = caixaData();
-    var html = backArrowBtn() + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;display:flex;align-items:center;gap:8px;">Caixa<span style="display:inline-flex;color:var(--accent);">'+ICONS.dollar+'</span></h2>'
+    var html = '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;display:flex;align-items:center;gap:8px;">'+backArrowBtn(1)+'Caixa<span style="display:inline-flex;color:var(--accent);">'+ICONS.dollar+'</span></h2>'
       + ((isAdmin() || can("cxHire")) && !(TUTORIAL && data.tut && data.tut.active && (tutMods(data.tut.scen, data.tut.lvl)[data.tut.mod]||{}).id==="caixa") ? '<button type="button" class="btn secondary" data-action="fx-open" title="Gastos Fixos Mensais" aria-label="Gastos Fixos Mensais" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;min-height:0;font-size:calc(12px*var(--fs,1));">Gastos fixos <span>/</span><span style="display:inline-flex;color:var(--accent);">'+ICONS.shirtTie+'</span></button>' : '')
       + '</div>';
     if(!can("cxOpen")){
@@ -8561,8 +8559,9 @@ var qrcode = function() {
     if(!cxClean && (isAdmin() || can("cxOpen"))) html += cxQueryHtml();
     if(cx.history.length && !cxClean){
       state.caixaHistOpen = state.caixaHistOpen || {};
-      html += '<div class="card"><div class="card-head"><h2>Fechamentos anteriores</h2></div>'
-        + cx.history.map(function(h){
+      var hCol = !!state.caixaHistCollapsed;
+      html += '<div class="card"><div class="card-head" data-action="cx-toggle-histcard" style="cursor:pointer;'+(hCol?'margin-bottom:0;':'')+'"><h2>Fechamentos anteriores</h2><span class="chev-arrow" style="color:var(--text-dim);">'+(hCol?'▾':'▴')+'</span></div>'
+        + (hCol ? '' : cx.history.map(function(h){
             var open = !!state.caixaHistOpen[h.id];
             var head = '<div class="avulso-paid-head" style="grid-template-columns:1fr auto;" data-action="caixa-toggle-hist" data-id="'+h.id+'"><span class="when">'+fmtDateTimeWd(h.openedAt)+' → '+fmtTime(h.closedAt)+'</span><span class="chev"><span class="cx-diff '+(Math.abs(h.diferenca)<0.005?'ok':(h.diferenca<0?'neg':'ok'))+'">'+fmtDiff(h.diferenca)+'</span><span class="chev-arrow">'+(open?'▴':'▾')+'</span></span></div>';
             var body = "";
@@ -8579,7 +8578,7 @@ var qrcode = function() {
                 + '<div class="comanda-print-row"><button class="comanda-print-btn" type="button" data-action="caixa-print" data-id="'+h.id+'">🖨️ Imprimir</button></div>';
             }
             return '<div style="border-top:1px solid var(--border);padding:6px 0;">'+head+body+'</div>';
-          }).join("") + '</div>';
+          }).join("")) + '</div>';
     }
     return html;
   }
@@ -8590,6 +8589,52 @@ var qrcode = function() {
     if(!state.cxTo || !/^\d{4}-\d{2}-\d{2}$/.test(state.cxTo)) state.cxTo = state.cxFrom;
     if(state.cxTo < state.cxFrom){ var x = state.cxFrom; state.cxFrom = state.cxTo; state.cxTo = x; }
   }
+  // campos de data da consulta: não confirma enquanto o usuário ainda pode estar digitando
+  // (0 espera o 2º dígito do dia; 1, 2 ou 3 esperam outro número ou Enter; os demais confirmam logo).
+  var cxDT = {timer:null, last:null, from:null};
+  function cxCommit(){
+    clearTimeout(cxDT.timer); cxDT.timer = null; cxDT.last = null;
+    var a = document.getElementById("cx-from"), b = document.getElementById("cx-to");
+    var fv = a && a.value, tv = b && b.value;
+    if(fv) state.cxFrom = fv; if(tv) state.cxTo = tv;
+    if(cxDT.from==="cx-from" && fv && (!state.cxTo || state.cxTo<fv)) state.cxTo = fv;
+    cxDT.from = null;
+    cxRange(); render();
+  }
+  function cxDateChanged(id){
+    clearTimeout(cxDT.timer); cxDT.timer = null;
+    var el = document.getElementById(id); if(!el) return;
+    if(id==="cx-from") cxDT.from = id;
+    if(!el.value) return; // data incompleta/inválida (ex.: só "0"): espera mais dígitos
+    var wait = cxDT.last!==null && cxDT.last<=3;
+    if(!wait) cxDT.timer = setTimeout(cxCommit, 220);
+  }
+  document.addEventListener("keydown", function(e){
+    var t = e.target; if(!t || (t.id!=="cx-from" && t.id!=="cx-to")) return;
+    if(e.key==="Enter"){ e.preventDefault(); e.stopPropagation(); if(t.value) cxCommit(); else { clearTimeout(cxDT.timer); render(); } return; }
+    clearTimeout(cxDT.timer); cxDT.timer = null;
+    cxDT.last = /^[0-9]$/.test(e.key) ? parseInt(e.key,10) : null;
+  }, true);
+  document.addEventListener("focusout", function(e){
+    var t = e.target; if(!t || (t.id!=="cx-from" && t.id!=="cx-to")) return;
+    var rt = e.relatedTarget;
+    if(rt && (rt.id==="cx-from" || rt.id==="cx-to")){
+      // passou para o outro campo: guarda o valor sem redesenhar
+      clearTimeout(cxDT.timer); cxDT.timer = null;
+      if(t.value){ if(t.id==="cx-from") state.cxFrom = t.value; else state.cxTo = t.value; }
+      return;
+    }
+    if(!t.isConnected) return;
+    clearTimeout(cxDT.timer); cxDT.timer = null;
+    // sai do campo (ex.: para clicar em outro botão): guarda o valor sem redesenhar agora,
+    // para não engolir o clique; o redesenho vem logo depois
+    if(t.value){
+      if(t.id==="cx-from"){ state.cxFrom = t.value; if(!state.cxTo || state.cxTo<t.value) state.cxTo = t.value; } else state.cxTo = t.value;
+      cxRange();
+    }
+    cxDT.from = null; cxDT.last = null;
+    setTimeout(function(){ if(state.screen==="caixa" && !state.modal) render(); }, 350);
+  });
   function cxPreset(p){
     var t = todayISO();
     if(p==="today"){ state.cxFrom = t; state.cxTo = t; }
@@ -8616,8 +8661,9 @@ var qrcode = function() {
     var chips = [["today","Hoje"],["yesterday","Ontem"],["7","7 dias"],["30","30 dias"],["month","Este mês"]].map(function(c){
       return '<button type="button" class="chip" data-action="cx-preset" data-p="'+c[0]+'">'+c[1]+'</button>';
     }).join("");
-    var html = '<div class="card" id="cx-query"><div class="card-head"><h2>Consultar por data</h2></div>'
-      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+chips+'</div>'
+    var qOpen = state.cxQueryOpen !== false;
+    var html = '<div class="card" id="cx-query"><div class="card-head" data-action="cx-toggle-q" style="cursor:pointer;'+(qOpen?'':'margin-bottom:0;')+'"><h2>Consultar por data</h2><span class="chev-arrow" style="color:var(--text-dim);">'+(qOpen?'▴':'▾')+'</span></div>'
+      + (qOpen ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+chips+'</div>'
       + '<div class="row-inline"><div class="field"><label>De</label><input type="date" id="cx-from" value="'+from+'" max="'+todayISO()+'"></div>'
       + '<div class="field"><label>Até</label><input type="date" id="cx-to" value="'+to+'" max="'+todayISO()+'"></div></div>'
       + '<div class="cx-line"><span>Vendido no período</span><span class="num">'+fmtBRL(vendido)+'</span></div>'
@@ -8629,7 +8675,7 @@ var qrcode = function() {
       + '<div class="cx-line"><span style="color:var(--text-dim);">Gastos (compras e pessoal)</span><span class="num">−'+fmtBRL(compras)+'</span></div>'
       + (pessoal.length ? '<div style="font-size:calc(12px*var(--fs,1));color:var(--text-dim);margin:10px 0 2px;">Pagamentos de pessoal no período (já incluídos nos gastos): <b>'+fmtBRL(pessoalTot)+'</b></div>'
           + pessoal.map(function(x){ return '<div class="hist-line"><span>'+escapeHtml(x.name)+' <span class="meta">'+fmtDateShort(x.date.slice(0,10))+'</span></span><b class="num">−'+fmtBRL(x.total)+'</b></div>'; }).join("") : '')
-      + '<button class="btn secondary" style="width:100%;margin-top:12px;" data-action="cx-view-sales">Ver vendas do período</button></div>';
+      + '<button class="btn secondary" style="width:100%;margin-top:12px;" data-action="cx-view-sales">Ver vendas do período</button>' : '') + '</div>';
     return html;
   }
   function caixaReceipt(h){
@@ -9192,7 +9238,8 @@ var qrcode = function() {
     data.featOrder = ord; saveData();
   }
   // ---------- layout da tela inicial ----------
-  var NAV_DEFAULT = ["comandas","stock","sales","caixa","avulsoProfit"];
+  var NAV_DEFAULT = NOAVU ? ["comandas","stock","sales","caixa"] : ["comandas","stock","sales","caixa","avulsoProfit"];
+  var NAV_N = NAV_DEFAULT.length;
   var NAV_DEST = {
     comandas:{screen:"comandas", icon:"person", label:"Comandas"},
     stock:{screen:"stock", icon:"box", label:"Ver Estoque"},
@@ -9200,6 +9247,7 @@ var qrcode = function() {
     caixa:{screen:"caixa", icon:"dollar", label:"Caixa"},
     avulsoProfit:{screen:"avulsoProfit", icon:"moneyBag", label:"Avulsos"}
   };
+  if(NOAVU) delete NAV_DEST.avulsoProfit;
   var FEAT_SHORT = {reports:"Relatórios", alerts:"Alertas", fiado:"Fiado", bilhar:"Bilhar", metas:"Metas", cozinha:"Cozinha", drinks:"Drinks", musicos:"Músicos"};
   function navDestInfo(key){
     if(NAV_DEST[key]) return NAV_DEST[key];
@@ -9212,18 +9260,18 @@ var qrcode = function() {
   }
   // devolve as 5 posições com destinos válidos e sem repetição
   function navLayout(){
-    var cur = (data.layout||[]).slice(0,5), used = {}, out = [];
-    for(var i=0;i<5;i++){
+    var cur = (data.layout||[]).slice(0,NAV_N), used = {}, out = [];
+    for(var i=0;i<NAV_N;i++){
       var k = cur[i];
       if(!k || !navDestValid(k) || used[k]){ k = null; }
       else used[k] = 1;
       out.push(k);
     }
-    for(var j=0;j<5;j++) if(!out[j]){
+    for(var j=0;j<NAV_N;j++) if(!out[j]){
       var d = NAV_DEFAULT[j];
       if(!used[d]){ out[j] = d; used[d] = 1; }
     }
-    for(var m=0;m<5;m++) if(!out[m]){
+    for(var m=0;m<NAV_N;m++) if(!out[m]){
       var f = NAV_DEFAULT.find(function(x){ return !used[x]; });
       out[m] = f; used[f] = 1;
     }
@@ -9293,7 +9341,7 @@ var qrcode = function() {
   }
   function renderReportProduct(){
     var name = state.rpProduct || "", days = reportDaysSel();
-    var html = backArrowBtn() + '<div class="end-btns" style="justify-content:space-between;align-items:center;margin:0 0 14px;gap:8px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;min-width:0;overflow-wrap:anywhere;">'+escapeHtml(name)+'</h2>'
+    var html = '<div class="end-btns" style="justify-content:space-between;align-items:center;margin:0 0 14px;gap:8px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;min-width:0;overflow-wrap:anywhere;">'+backArrowBtn(1)+''+escapeHtml(name)+'</h2>'
       + '<button type="button" class="hamburger-btn" style="z-index:auto;'+((data.productNotes||{})[name]?'color:var(--accent);border-color:var(--accent);':'')+'" data-action="open-product-notes" title="Anotações" aria-label="Anotações">'+ICONS.note+'</button></div>';
     html += chipRow(reportPeriods(), days, "report-days", "days");
     var from = isoDaysAgo(days-1), pFrom = isoDaysAgo(2*days-1), pTo = isoDaysAgo(days);
@@ -10268,7 +10316,7 @@ var qrcode = function() {
   }
   setInterval(bilharCheckAlarms, 1000);
   function renderBilhar(){
-    var bd = bilharData(), html = backArrowBtn() + '<div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;display:flex;align-items:center;gap:8px;">Bilhar <span style="display:inline-flex;color:var(--accent);">'+ICONS.featBilhar+'</span></h2>'
+    var bd = bilharData(), html = '<div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;display:flex;align-items:center;gap:8px;">'+backArrowBtn(1)+'Bilhar <span style="display:inline-flex;color:var(--accent);">'+ICONS.featBilhar+'</span></h2>'
       + '<button type="button" data-action="bil-bot" aria-label="Ajuda" title="Ajuda" style="background:none;border:none;font-size:calc(22px*var(--fs,1));line-height:1;padding:0 2px;cursor:pointer;color:var(--text-dim);">'+(state.bilBot ? '🤖' : ICO_INFO)+'</button>'
       + (state.bilBot ? '<div data-action="bil-bot-next" style="display:flow-root;position:absolute;right:0;top:32px;z-index:5;max-width:270px;background:var(--bg-elev-2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:calc(13px*var(--fs,1));line-height:1.4;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;">'
         + (state.bilBotPage===2 ? 'É possível acrescentar, convenientemente, fichas novas para o cliente direto de lá :)<br>Elas não aparecerão aqui, entretanto, então cuidado pra não se confundir! 👊' : 'Os jogos abertos através desta seção geram comandas automáticas na seção <b>Comandas</b>, e elas devem ser pagas por lá.')
@@ -11136,6 +11184,7 @@ var qrcode = function() {
     if(price===null){ showToast("Preço de venda inválido."); return; }
     if(qty > it.stock){ showToast("Estoque insuficiente ("+it.stock+" un. disponíveis)."); return; }
     var clientId = (clientSel && clientSel.value) ? clientSel.value : null;
+    if(NOAVU && !clientId){ showToast("Escolha um cliente (cadastre um em Comandas)."); return; }
     if(it.sellPrice!=null && price < it.sellPrice - 0.001){
       state.modal = {type:"confirmDiscountSale", itemId:itemId, qty:qty, price:price, clientId:clientId};
       render();
@@ -11644,6 +11693,12 @@ var qrcode = function() {
     npWire(f.querySelector(".np")); npPlace();
     var ta = f.querySelector(".np-text"); if(ta) ta.focus();
   }
+  document.addEventListener("pointerdown", function(e){
+    if(!np.open) return;
+    var t = e.target;
+    if(t && t.closest && t.closest("#np-float, #np-strip")) return;
+    npClose();
+  }, true);
   function npClose(){
     var f = document.getElementById("np-float");
     if(f){ try{ npCommit(f.querySelector(".np")); }catch(e){} f.classList.remove("open"); f.innerHTML = ""; }
