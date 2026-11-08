@@ -22,6 +22,17 @@
   var LS_KEY = "license_key_v1";
   var LS_DEVICE = "license_device_id_v1";
   var LS_VALID_UNTIL = "license_valid_until_v1";
+  var LS_PW_UNLOCK = "bf_pw_unlock"; // até quando o suporte liberou a entrada sem senha (ms)
+
+  // o suporte libera a entrada sem senha pelo Supabase (coluna pw_unlock_until); o app lê este valor
+  function noteUnlock(res) {
+    try {
+      if (res && res.valid) {
+        if (res.unlock_until) localStorage.setItem(LS_PW_UNLOCK, String(res.unlock_until));
+        else localStorage.removeItem(LS_PW_UNLOCK);
+      }
+    } catch (e) {}
+  }
 
   function uid() {
     return "dev-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -121,7 +132,7 @@
         .then(function (res) {
           if (res && res.valid) {
             localStorage.setItem(LS_KEY, key);
-            extendCache();
+            extendCache(); noteUnlock(res);
             overlay.remove();
           } else {
             btn.disabled = false;
@@ -156,9 +167,9 @@
   function silentRevalidate() {
     var key = localStorage.getItem(LS_KEY);
     if (!key) return;
-    callValidate(key, getDeviceId()).then(function (res) {
+    return callValidate(key, getDeviceId()).then(function (res) {
       if (res && res.valid) {
-        extendCache();
+        extendCache(); noteUnlock(res);
       } else {
         // a chave foi revogada ou algo mudou: força nova ativação na
         // próxima abertura do app.
@@ -168,6 +179,9 @@
       // sem internet: mantém o cache como está, não derruba o usuário no meio do uso.
     });
   }
+
+  // a tela de login do app chama isto ao tocar em "Esqueci minha senha"
+  window.bfRecheckLicense = function () { var p = silentRevalidate(); return p || Promise.resolve(); };
 
   // ---- ponto de entrada ----
   if (cachedStillValid()) {

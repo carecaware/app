@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
 
     const { data: license, error } = await supabase
       .from("licenses")
-      .select("id, platform, max_activations, revoked, max_releases_per_year")
+      .select("id, platform, max_activations, revoked, max_releases_per_year, pw_unlock_until")
       .eq("license_key", String(license_key).trim().toUpperCase())
       .maybeSingle();
     if (error) return json({ valid: false, reason: "server_error" });
@@ -37,6 +37,10 @@ Deno.serve(async (req) => {
     if (license.platform !== platform) return json({ valid: false, reason: "wrong_platform" });
 
     const now = new Date().toISOString();
+    // liberação temporária de entrada sem senha (definida pelo suporte; ver migration-004.sql)
+    const unlockMs = license.pw_unlock_until ? new Date(license.pw_unlock_until).getTime() : 0;
+    const okRes = (extra: Record<string, unknown> = {}) =>
+      json({ valid: true, ...(unlockMs > Date.now() ? { unlock_until: unlockMs } : {}), ...extra });
     const { data: acts, error: e2 } = await supabase
       .from("license_activations").select("id, device_id").eq("license_id", license.id);
     if (e2) return json({ valid: false, reason: "server_error" });
@@ -46,7 +50,7 @@ Deno.serve(async (req) => {
     const mine = list.find((a) => a.device_id === device_id);
     if (mine) {
       await supabase.from("license_activations").update({ last_seen_at: now, platform }).eq("id", mine.id);
-      return json({ valid: true });
+      return okRes();
     }
 
     // 2) migração do ID antigo (aleatório) para o ID estável: troca, sem gastar vaga
@@ -55,7 +59,7 @@ Deno.serve(async (req) => {
       if (old) {
         await supabase.from("license_activations")
           .update({ device_id, last_seen_at: now, platform }).eq("id", old.id);
-        return json({ valid: true });
+        return okRes();
       }
     }
 
@@ -63,7 +67,7 @@ Deno.serve(async (req) => {
     if (list.length < license.max_activations) {
       await supabase.from("license_activations")
         .insert({ license_id: license.id, device_id, last_seen_at: now, platform });
-      return json({ valid: true });
+      return okRes();
     }
 
     // 4) sem vaga: só libera se o cliente pediu e ainda tem trocas no ano
@@ -83,7 +87,7 @@ Deno.serve(async (req) => {
     await supabase.from("license_activations").delete().eq("license_id", license.id);
     await supabase.from("license_activations")
       .insert({ license_id: license.id, device_id, last_seen_at: now, platform });
-    return json({ valid: true, released: true });
+    return okRes({ released: true });
   } catch (_e) {
     return json({ valid: false, reason: "server_error" });
   }

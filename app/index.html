@@ -144,6 +144,28 @@
     .nav-btn span{font-size:calc(13px*var(--fs,1));}
   }
 
+  /* PC, layout padrão: o conteúdo e as etiquetas crescem com a janela (limitado, para não exagerar) */
+  @media (min-width:900px){
+    html:not(.trad) #app{max-width:clamp(640px,52vw,1040px);}
+    html:not(.trad) .nav-grid:not(.mini){gap:clamp(10px,1.1vw,18px);}
+    html:not(.trad) .nav-grid:not(.mini) .nav-btn{padding:clamp(16px,1.9vh,30px) clamp(14px,1.1vw,22px);gap:clamp(8px,1vh,14px);}
+    html:not(.trad) .nav-grid:not(.mini) .nav-btn span{font-size:calc(clamp(14px,.62vw + .55vh,21px)*var(--fs,1));}
+    html:not(.trad) .nav-grid:not(.mini) .nav-btn svg{width:clamp(20px,1.5vw,30px);height:clamp(20px,1.5vw,30px);}
+  }
+  .bil-plan{display:flex;align-items:center;justify-content:center;gap:14px;margin:0 0 10px;}
+  .bil-plan-val{font-size:calc(14px*var(--fs,1));color:var(--text-dim);min-width:130px;text-align:center;}
+  .bil-plan-val b{color:var(--text);}
+  .bil-plan-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg-elev-2);color:var(--accent);font-size:22px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+  .bil-plan-btn:disabled{opacity:.35;cursor:default;}
+  .bil-timer.over{color:#e0574a;animation:bilblink 1s steps(2,start) infinite;}
+  @keyframes bilblink{to{opacity:.45;}}
+  #bil-alarm{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:100000;width:min(94vw,520px);display:flex;flex-direction:column;gap:8px;}
+  .bil-alarm-row{background:#b3261e;color:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.45);}
+  .bil-alarm-txt{font-size:15px;margin-bottom:8px;}
+  .bil-alarm-btns{display:flex;gap:8px;flex-wrap:wrap;}
+  .bil-alarm-btns button{flex:1 1 auto;background:#fff;color:#7a1510;border:none;border-radius:8px;padding:9px 12px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;}
+  .cv-zoom{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg-elev-2);color:var(--accent);font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+  .cv-zoom:disabled{opacity:.35;cursor:default;}
   /* card */
   .card{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
   .card + .card{margin-top:14px;}
@@ -1337,7 +1359,7 @@
     loggedIn:false,
     role:null,
     loginRole:"admin",
-    loginError:null,
+    loginError:null, loginInfo:null,
     loginFading:false,
     changePasswordError:null
   };
@@ -1705,6 +1727,10 @@
     if(data.musicians) (data.musicians.gigs||[]).forEach(function(g){ if(g.date===iso && !g.reverted) t += (g.price||0); });
     return t;
   }
+  // pagamentos de funcionários e contratações (freelas) feitos no dia: contam como gasto e reduzem o lucro
+  function fxPayDesc(x){ return "Pagamento de "+x.name+" - "+(x.kind==="staff" ? "Funcionário" : "Freela"); }
+  function fxPaysOn(iso){ return (fixedData().payLog||[]).filter(function(x){ return String(x.date).slice(0,10)===iso; }); }
+  function fxCost(iso){ return fxPaysOn(iso).reduce(function(a,x){ return a + (x.amount||0); },0); }
   function dayTotals(iso){
     var compras=0, vendas=0;
     data.items.forEach(function(it){
@@ -1717,7 +1743,7 @@
     (data.deletedRestocks||[]).forEach(function(r){ if(r.date.slice(0,10)===iso) compras += (r.total!==undefined ? r.total : r.qty*r.buyPrice); });
     // estorno: ao apagar um item, tudo o que foi gasto nas compras dele volta ao lucro no dia em que foi apagado
     (data.itemRefunds||[]).forEach(function(f){ if(f.date.slice(0,10)===iso) compras -= f.total; });
-    compras += musGigCost(iso);
+    compras += musGigCost(iso) + fxCost(iso);
     // for sales tied to a client's comanda, only revenue actually collected —
     // via abatimentos or a fully closed (PAGO) comanda — counts as realized
     // profit; the rest is "pendente" until it's paid off.
@@ -1754,6 +1780,8 @@
     (data.deletedRestocks||[]).forEach(function(r){ set[r.date.slice(0,10)] = 1; });
     (data.itemRefunds||[]).forEach(function(f){ set[f.date.slice(0,10)] = 1; });
     Object.keys(data.dailyAdjustments||{}).forEach(function(k){ set[k] = 1; });
+    (fixedData().payLog||[]).forEach(function(x){ set[String(x.date).slice(0,10)] = 1; });
+    if(data.musicians) (data.musicians.gigs||[]).forEach(function(g){ if(g.date && !g.reverted) set[g.date] = 1; });
     }
     var lucro = 0, pend = 0;
     Object.keys(set).forEach(function(iso){
@@ -1958,7 +1986,7 @@
     "caixa-open":"cxOpen", "caixa-nofundo-confirm":"cxOpen", "open-caixa-move":"cxOpen", "open-caixa-close":"cxOpen", "modal-submit-caixa-move":"cxOpen", "modal-submit-caixa-close":"cxOpen",
     "fx-open":"cxHire", "fx-hire":"cxHire", "fx-save":"cxHire", "fx-pay":"cxHire", "fx-del":"cxHire", "fx-revert":"cxHire", "fx-del-ok":"cxHire",
     "open-features":"featEdit", "toggle-feature":"featEdit",
-    "bilhar-start":"bilStart", "bilhar-ficha-new":"bilStart",
+    "bilhar-start":"bilStart", "bilhar-plan-add":"bilStart", "bilhar-plan-sub":"bilStart", "bilhar-ficha-new":"bilStart",
     "k-ing-new":function(){ return kGrp()==="d" ? "dIng" : "kIng"; },
     "k-por-new":function(){ return kGrp()==="d" ? "dNew" : "kPorNew"; },
     "k-por-del":function(){ return kGrp()==="d" ? "dDel" : "kPorDel"; }
@@ -2009,7 +2037,9 @@
       + '<label for="login-password-input">Senha</label>'
       + (TUTORIAL ? '<div class="login-pw"><input type="password" id="login-password-input" autocomplete="current-password" placeholder=""><button type="button" class="login-eye" data-action="toggle-login-pw" title="Mostrar senha" aria-label="Mostrar senha" onmousedown="event.preventDefault()">'+ICONS.eye+'</button></div>' : '<input type="password" id="login-password-input" autocomplete="current-password" placeholder="">')
       + (state.loginError ? '<div class="login-error">'+escapeHtml(state.loginError)+'</div>' : '')
+      + (state.loginInfo ? '<div class="login-error" style="color:var(--text-dim);">'+escapeHtml(state.loginInfo)+'</div>' : '')
       + '<button class="btn login-btn" data-action="submit-login">Entrar</button>'
+      + (pwUnlockAvailable() ? '<button type="button" class="btn secondary" style="width:100%;margin-top:10px;" data-action="unlock-login">Entrar sem senha (liberado pelo suporte)</button>' : '<button type="button" class="hint-link" style="display:block;margin:10px auto 0;" data-action="forgot-password">Esqueci minha senha</button>')
       + '</div>'
       + (state.exitPrompt ? '<div class="modal-backdrop"><div class="modal"><h3>Você deseja mesmo sair do app?</h3>'
           + '<div class="actions"><button class="btn secondary" data-action="exit-cancel">Cancelar</button><button class="btn" data-action="exit-confirm">Sair</button></div></div></div>' : '')
@@ -2066,6 +2096,8 @@
     if(sc==="musicCompare") return state.musFrom==="reports" ? "reports" : "musicians";
     if(sc==="musicianDetail") return "musicians";
     if(sc==="musicians") return "dashboard";
+    if(sc==="soldProduct" && state.soldDayIso) return "dayDetail";
+    if(sc==="dayDetail" && state.dayOrigin) return state.dayOrigin;
     if(sc==="soldProduct") return "sales";
     if(sc==="navKeys") return "hotkeys";
     if(sc==="hotkeys" || sc==="changePassword" || sc==="help") return "settings";
@@ -2158,7 +2190,7 @@
   }
 
   function dashTools(){
-    return {mute: '<button class="mute-toggle'+(soundMuted?' off':'')+'" data-action="toggle-mute" title="'+(soundMuted?'Ativar sons':'Silenciar sons')+'" aria-label="'+(soundMuted?'Ativar sons':'Silenciar sons')+'" aria-pressed="'+(soundMuted?'true':'false')+'">'+(soundMuted?ICONS.soundOff:ICONS.soundOn)+'</button>', size: '<button class="size-toggle'+(bigText?' on':'')+'" data-action="toggle-big" title="'+(bigText?'Letras normais':'Aumentar letras')+'" aria-label="Aumentar letras" aria-pressed="'+(bigText?'true':'false')+'"><span style="font-size:11px">a</span><span style="font-size:16px">A</span></button>'};
+    return {mute: '<button class="mute-toggle'+(soundMuted?' off':'')+'" data-action="toggle-mute" title="'+(soundMuted?'Ativar sons':'Silenciar sons')+'" aria-label="'+(soundMuted?'Ativar sons':'Silenciar sons')+'" aria-pressed="'+(soundMuted?'true':'false')+'">'+(soundMuted?ICONS.soundOff:ICONS.soundOn)+'</button>', size: '<button class="size-toggle'+(bigLevel?' on':'')+'" data-action="toggle-big" title="'+(bigLevel>=BIG_MAX?'Voltar ao tamanho normal':'Aumentar letras')+(bigLevel?' (nível '+bigLevel+' de '+BIG_MAX+')':'')+'" aria-label="Aumentar letras" aria-pressed="'+(bigLevel?'true':'false')+'"><span style="font-size:11px">a</span><span style="font-size:16px">A</span></button>'};
   }
 
   function renderDashboard(){
@@ -2235,9 +2267,45 @@
       + '</div>';
   }
 
+  function salesInDays(iso, isoTo){
+    return data.sales.filter(function(x){ var d = x.date.slice(0,10); return isoTo ? (d>=iso && d<=isoTo) : d===iso; });
+  }
+  function daySalesHtml(iso, isoTo){
+    var grouped = state.daySalesGroup!==false, sort = state.daySalesSort==="alpha" ? "alpha" : "time";
+    var list = salesInDays(iso, isoTo), tot = list.reduce(function(a,x){ return a + x.qty*x.sellPrice; },0);
+    var html = '<div class="card" style="padding:10px 12px;"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">'
+      + '<button type="button" class="chip" data-action="day-sales-group" title="'+(grouped?'Mostrar cada venda separada':'Agrupar itens iguais')+'">'+(grouped?'Desagrupar':'Agrupar')+'</button>'
+      + '<span style="flex:1"></span>'
+      + '<button type="button" class="chip'+(sort==="time"?' active':'')+'" data-action="day-sales-sort" data-mode="time">Por horário</button>'
+      + '<button type="button" class="chip'+(sort==="alpha"?' active':'')+'" data-action="day-sales-sort" data-mode="alpha">A–Z</button></div></div>';
+    if(!list.length) return html + '<div class="card"><div class="empty">Nada foi vendido neste período.</div></div>';
+    var rows;
+    function nm(a,b){ return String(a).localeCompare(String(b), "pt-BR", {sensitivity:"base"}); }
+    var dayTag = function(x){ return isoTo ? fmtDateShort(x.date.slice(0,10))+' ' : ''; };
+    var dayAttr = ' data-day="'+iso+'"'+(isoTo ? ' data-day-to="'+isoTo+'"' : '');
+    if(grouped){
+      var g = {}, order = [];
+      list.forEach(function(x){ var k = x.itemName; if(!g[k]){ g[k] = {name:k, qty:0, total:0, last:x.date}; order.push(k); } g[k].qty += x.qty; g[k].total += x.qty*x.sellPrice; if(x.date>g[k].last) g[k].last = x.date; });
+      var arr = order.map(function(k){ return g[k]; });
+      arr.sort(sort==="alpha" ? function(a,b){ return nm(a.name,b.name); } : function(a,b){ return a.last<b.last ? 1 : -1; });
+      rows = arr.map(function(x){
+        return '<div class="hist-line day-link" data-action="open-sold-product" data-name="'+escapeHtml(x.name)+'"'+dayAttr+' style="cursor:pointer;" title="Ver para quem foi vendido"><span>'+escapeHtml(x.name)+' <span class="meta">×'+x.qty+' · última '+dayTag({date:x.last})+fmtTime(x.last)+'</span></span><b class="num">'+fmtBRL(x.total)+'</b></div>';
+      }).join("");
+    } else {
+      var arr2 = list.slice();
+      arr2.sort(sort==="alpha" ? function(a,b){ return nm(a.itemName,b.itemName) || (a.date<b.date ? 1 : -1); } : function(a,b){ return a.date<b.date ? 1 : -1; });
+      rows = arr2.map(function(x){
+        return '<div class="hist-line day-link" data-action="open-sold-sale" data-id="'+x.id+'" style="cursor:pointer;" title="Ver para quem foi vendido"><span>'+escapeHtml(x.itemName)+' <span class="meta">×'+x.qty+' · '+dayTag(x)+fmtTime(x.date)+'</span></span><b class="num">'+fmtBRL(x.qty*x.sellPrice)+'</b></div>';
+      }).join("");
+    }
+    return html + '<div class="card"><div class="card-head"><h2>Vendido</h2></div>'+rows
+      + '<div class="hist-line" style="border-top:1px solid var(--border);margin-top:8px;padding-top:12px;"><span><b>Total vendido</b></span><b class="num">'+fmtBRL(tot)+'</b></div></div>';
+  }
   function renderDayDetail(){
     var iso = state.dayDetailIso || todayISO();
-    var html = backArrowBtn() + '<h2 style="font-size:calc(18px*var(--fs,1));margin-bottom:18px;">'+fmtDaySeparator(iso)+'</h2>';
+    var view = state.dayView, isoTo = state.dayDetailTo || null;
+    var html = backArrowBtn() + '<h2 style="font-size:calc(18px*var(--fs,1));margin-bottom:18px;">'+(isoTo ? fmtDateShort(iso)+' a '+fmtDateShort(isoTo) : fmtDaySeparator(iso))+(view==="buys" ? ' · Compras' : (view==="sales" ? ' · Vendas' : ''))+'</h2>';
+    if(view==="sales") return html + daySalesHtml(iso, isoTo);
     var buys = [];
     data.items.forEach(function(it){
       (it.restocks||[]).forEach(function(r){ if(r.date.slice(0,10)===iso) buys.push({name:it.name, qty:r.qty, price:r.buyPrice, date:r.date}); });
@@ -2247,17 +2315,20 @@
     (data.itemRefunds||[]).forEach(function(f){ if(f.date.slice(0,10)===iso) (f.lines||[]).forEach(function(l, li){
       buys.push(l.total!==undefined ? {name:"Estorno: "+f.name+" (apagado)", label:l.label, total:-l.total, date:f.date} : {name:"Estorno: "+f.name+" (apagado)", label:'×'+l.qty+' a '+fmtBRL(l.buyPrice)+'/un., comprado em '+fmtDateShort(l.date.slice(0,10)), total:-(l.qty*l.buyPrice), date:f.date});
     }); });
-    if(data.musicians) (data.musicians.gigs||[]).forEach(function(g){ if(g.date===iso && !g.reverted){ var mm = data.musicians.list.find(function(x){ return x.id===g.mid; }); buys.push({name:"Músico: "+(mm?mm.name:"?"), label:(g.hours?fmtHoursStr(g.hours)+" tocadas":"show"), total:g.price||0, date:iso+"T23:59:59"}); } });
+    if(data.musicians) (data.musicians.gigs||[]).forEach(function(g){ if(g.date===iso && !g.reverted){ var mm = data.musicians.list.find(function(x){ return x.id===g.mid; }); buys.push({name:"Pagamento de "+(mm?mm.name:"?")+" - Músico", label:(g.hours?fmtHoursStr(g.hours)+" tocadas":"show"), total:g.price||0, date:iso+"T23:59:59"}); } });
+    fxPaysOn(iso).forEach(function(x){ buys.push({name:fxPayDesc(x), label:(x.kind==="staff" ? "salário" : "diária"), total:x.amount, date:x.date}); });
     buys.sort(function(a,b){ return a.date<b.date ? 1 : -1; });
     var buyTot = buys.reduce(function(a,x){ return a + (x.total!==undefined ? x.total : x.qty*x.price); },0);
     var sold = data.sales.filter(function(s){ return s.date.slice(0,10)===iso; }).slice().reverse();
     var soldTot = sold.reduce(function(a,x){ return a + x.qty*x.sellPrice; },0);
+    if(view==="buys") sold = [];
     html += '<div class="card"><div class="card-head"><h2>Comprado</h2></div>'
       + (buys.length ? buys.map(function(x){
           return '<div class="hist-line"><span>'+escapeHtml(x.name)+' <span class="meta">'+(x.label||('×'+x.qty))+' · '+fmtTime(x.date)+'</span></span><b class="num">'+fmtBRL(x.total!==undefined ? x.total : x.qty*x.price)+'</b></div>';
         }).join("") + '<div class="hist-line" style="border-top:1px solid var(--border);margin-top:8px;padding-top:12px;"><span><b>Total comprado</b></span><b class="num">'+fmtBRL(buyTot)+'</b></div>'
         : '<div class="empty">Nada foi comprado neste dia.</div>')
       + '</div>';
+    if(view==="buys") return html;
     html += '<div class="card"><div class="card-head"><h2>Vendido</h2></div>'
       + (sold.length ? sold.map(function(x){
           return '<div class="hist-line"><span>'+escapeHtml(x.itemName)+' <span class="meta">×'+x.qty+' · '+fmtTime(x.date)+'</span></span><b class="num">'+fmtBRL(x.qty*x.sellPrice)+'</b></div>';
@@ -2279,9 +2350,19 @@
   }
   function renderSoldProduct(){
     var name = state.soldProduct || "", n = state.salesFilterDays || 1;
-    var cutoff = isoDaysAgo(n-1);
-    var list = data.sales.filter(function(x){ return x.itemName===name && x.date.slice(0,10)>=cutoff; }).slice().reverse();
-    var html = screenHeader(name) + '<p style="font-size:calc(13px*var(--fs,1));color:var(--text-dim);margin:-8px 0 12px;">Vendas no período: '+(n===1?'hoje':n+' dias')+'</p>';
+    var cutoff = isoDaysAgo(n-1), dIso = state.soldDayIso, dTo = state.soldDayTo;
+    var list, scope;
+    if(state.soldSaleId){
+      list = data.sales.filter(function(x){ return x.id===state.soldSaleId; });
+      scope = 'Esta venda';
+    } else if(dIso){
+      list = salesInDays(dIso, dTo).filter(function(x){ return x.itemName===name; }).slice().sort(function(a,b){ return a.date<b.date ? 1 : -1; });
+      scope = dTo ? 'Vendas de '+fmtDateShort(dIso)+' a '+fmtDateShort(dTo) : 'Vendas de '+fmtDateShort(dIso);
+    } else {
+      list = data.sales.filter(function(x){ return x.itemName===name && x.date.slice(0,10)>=cutoff; }).slice().sort(function(a,b){ return a.date<b.date ? 1 : -1; });
+      scope = 'Vendas no período: '+(n===1?'hoje':n+' dias');
+    }
+    var html = screenHeader(name) + '<p style="font-size:calc(13px*var(--fs,1));color:var(--text-dim);margin:-8px 0 12px;">'+scope+'</p>';
     if(!list.length) return html + '<div class="card"><div class="empty">Nenhuma venda deste produto no período.</div></div>';
     var qty = 0, val = 0, pend = 0;
     list.forEach(function(x){ qty += x.qty; val += x.qty*x.sellPrice; });
@@ -2366,11 +2447,12 @@
   function renderDailyCell(iso, field, val, cls, prefix, editable){
     // valores diários não são mais editáveis à mão (editable ignorado)
     if(field==="lucro"){
-      return '<span class="'+cls+' col-val" title="Lucro já realizado (valores pagos ou de comandas fechadas)">'+prefix+fmtBRL(val)+'</span>';
+      return '<span class="'+cls+' col-val hide-toggle" data-action="toggle-hide-profit" title="Toque para ocultar ou mostrar os valores de lucro">'+(state.hideProfit ? '****' : prefix+fmtBRL(val))+'</span>';
     }
     var shownPrefix = prefix, shownVal = val;
     if(val<0 && (field==="compras" || field==="vendas")){ shownPrefix = prefix==="-" ? "+" : "-"; shownVal = -val; } // estorno: gasto negativo aparece como entrada
-    return '<span class="'+cls+' col-val"><span class="val-text">'+shownPrefix+fmtBRL(shownVal)+'</span></span>';
+    var goView = field==="compras" ? "buys" : "sales";
+    return '<span class="'+cls+' col-val day-link" data-action="open-day" data-iso="'+iso+'" data-view="'+goView+'" title="'+(field==="compras" ? 'Ver tudo o que foi comprado neste dia' : 'Ver tudo o que foi vendido neste dia')+'" style="cursor:pointer;"><span class="val-text">'+shownPrefix+fmtBRL(shownVal)+'</span></span>';
   }
 
   function renderStock(){
@@ -2867,6 +2949,7 @@
       ["Vendas avulsas e lucro", "Vendas sem cliente ficam em <b>Avulso</b>. Lá, toque em um ou mais produtos com pagamento pendente para montar uma comanda avulsa. <b>Reverter</b> corrige erros (recalcula lucros e devolve os itens); <b>Excluir</b> apenas esconde. Na tela inicial, clicar em <b>Lucro total</b> troca o lucro e as pendências por ****; clique de novo para mostrar."]
     ];
     L.push(["Preço de itens comprados em quantidade", "Ao registrar a compra de um item, se você pagou um valor único por vários itens (uma caixa ou pacote), não precisa fazer a conta: digite a <b>quantidade de itens</b>, um <b>espaço</b> e o <b>valor pago</b> pelos itens. Por exemplo, <b>12 60</b> significa 12 unidades por R$ 60, e o app calcula R$ 5,00 por unidade."]);
+    L.push(["Mudar o nome de um item do estoque", "Em <b>Estoque</b>, 'segure' o mouse (PC) ou o dedo (celular) pressionado por cerca de meio segundo sobre um item e uma janela aparece para você <b>mudar o nome</b> dele."]);
     L.push(["Passe o mouse e descubra", "Pare o cursor sobre <b>valores, ícones e nomes</b> e uma dica aparece. Por exemplo: sobre o lucro total, o <b>lucro real</b> (sem as pendências); sobre os botões, o que eles fazem. Vale explorar!"]);
     var X = [
       ["Bilhar", "Os jogos abertos em Bilhar geram comandas automáticas na seção <b>Comandas</b>, e devem ser pagas por lá. Fichas novas podem ser acrescentadas direto da comanda, mas não aparecem nos demonstrativos de Bilhar. Ações que mexem em dinheiro são só do administrador."],
@@ -2900,7 +2983,7 @@
     html += '<p style="font-size:calc(13px*var(--fs,1));color:var(--text-dim);margin:0 0 12px;">Estas teclas funcionam em qualquer página do app, para você usar menos o mouse.</p>';
     html += card(key('←'), 'Seta para a esquerda: voltar', 'Volta para a página anterior. Dentro de um quadro de confirmação (prompt), a seta não é usada: use Cancelar.');
     html += card(key('Enter'), 'Enter: prosseguir', 'Confirma e avança na hora de cadastrar produtos, registrar vendas, abrir o caixa, adicionar clientes e nos quadros de confirmação com um único botão de destaque (como Adicionar, Salvar e OK). Quando há dois botões de destaque, ou o aviso é vermelho ou amarelo, o Enter não confirma: clique no botão desejado.');
-    if(!MOBILE) html += card(key('C')+key('E')+key('V')+key('R')+key('A'), 'Letras: abrir páginas', 'C abre Comandas, E abre Estoque, V abre Vender, R abre Caixa e A abre Avulsos. Não funcionam enquanto você digita em um campo ou com um quadro aberto.');
+    if(!MOBILE) html += card(key('C')+key('E')+key('V')+key('S')+key('A'), 'Letras: abrir páginas', 'C abre Comandas, E abre Estoque, V abre Vender, S abre Caixa e A abre Avulsos. Não funcionam enquanto você digita em um campo ou com um quadro aberto.');
     html += card(key('→'), 'Seta para a direita: avançar', 'Depois de voltar, a seta para a direita leva de novo à página de onde você saiu.');
     return html;
   }
@@ -4198,6 +4281,15 @@
         + '<p style="font-size:calc(12px*var(--fs,1));color:var(--text-dim);margin:4px 0 0;line-height:1.45;">Uma nova aba aparece a cada X dias de histórico (ex.: com 7, as abas serão Hoje, 7, 14, 21 dias…). Use um número inteiro a partir de 2.</p></div>'
         + (m.error ? '<div class="err">'+escapeHtml(m.error)+'</div>' : '')
         + '<div class="actions"><button class="btn secondary" data-action="open-adv">Voltar</button><button class="btn btn-confirm-enter" data-action="adv-save">OK</button></div>';
+    } else if(m.type==="reportPeriods"){
+      var rst = parseInt(data.reportStep,10)>=2 ? parseInt(data.reportStep,10) : 0;
+      body = '<h3>Períodos dos Relatórios</h3>'
+        + '<div class="field">'
+        + '<label style="display:flex;align-items:center;gap:8px;margin:6px 0;font-size:calc(14px*var(--fs,1));"><input type="radio" name="rp-mode" id="rp-mode-def" value="def"'+(rst?'':' checked')+' style="width:auto;"> Padrão (7, 15, 30 e 60 dias)</label>'
+        + '<label style="display:flex;align-items:center;gap:8px;margin:6px 0;font-size:calc(14px*var(--fs,1));flex-wrap:wrap;"><input type="radio" name="rp-mode" id="rp-mode-step" value="step"'+(rst?' checked':'')+' style="width:auto;"> A cada <input id="rp-step" inputmode="numeric" placeholder="X" value="'+(rst||"")+'" style="width:70px;min-width:0;text-align:center;" onfocus="document.getElementById(\'rp-mode-step\').checked=true;"> dias</label>'
+        + '<p style="font-size:calc(12px*var(--fs,1));color:var(--text-dim);margin:4px 0 0;line-height:1.45;">Com X = 10, por exemplo, as opções serão 10, 20, 30, 40, 50 e 60 dias. Use um número inteiro de 2 a 365.</p></div>'
+        + (m.error ? '<div class="err">'+escapeHtml(m.error)+'</div>' : '')
+        + '<div class="actions"><button class="btn secondary" data-action="modal-cancel">Cancelar</button><button class="btn btn-confirm-enter" data-action="report-periods-save">OK</button></div>';
     } else if(m.type==="advLayout"){
       var lay = navLayout(), opts = navDestOptions(), selI = m.sel;
       body = '<h3>Layout da tela inicial</h3>'
@@ -4221,7 +4313,7 @@
     } else if(m.type==="featuresPicker"){
       body = '<h3>Recursos Personalizados</h3>'
         + '<p style="color:var(--text-dim);font-size:calc(13px*var(--fs,1));margin:-4px 0 12px;">Marque para criar uma aba na lateral esquerda da tela inicial.</p>'
-        + FEATURES.map(function(f){
+        + FEATURES.slice().sort(function(a,b){ return (a.k==='metas')-(b.k==='metas'); }).map(function(f){
             var on = featOn(f.k);
             return '<button type="button" class="feat-row'+(on?' on':'')+'" data-action="toggle-feature" data-key="'+f.k+'"><span class="feat-ico">'+ICONS[f.icon]+'</span><span class="feat-name">'+f.label+'</span><span class="feat-tick">'+(on?'✓':'')+'</span></button>';
           }).join("")
@@ -4376,6 +4468,12 @@
   }
 
   // ---------- actions ----------
+  // Avulsos: tocar em qualquer lugar fora dos itens e da comanda montada desfaz a comanda em criação
+  document.addEventListener("click", function(e){
+    if(state.screen!=="avulsoProfit" || state.modal || !state.avulsoSel || !state.avulsoSel.length) return;
+    if(e.target.closest && e.target.closest(".sale-click, .avulso-panel, .modal-backdrop, button, input, select, textarea, a, [data-action], #np-float, #np-strip")) return;
+    state.avulsoSel = []; state.avulsoPrinted = false; render();
+  });
   function bindEvents(){
     alignFabs();
     var app = document.getElementById("app");
@@ -4384,7 +4482,7 @@
       if(!MOBILE && state.loggedIn && !state.modal && !e.ctrlKey && !e.altKey && !e.metaKey && e.key && e.key.length===1){
         var kt = e.target || document.activeElement, tg = kt && kt.tagName;
         if(tg!=="INPUT" && tg!=="TEXTAREA" && tg!=="SELECT" && !(kt && kt.isContentEditable) && !(kt && kt.closest && kt.closest("#np-float"))){
-          var kd = {c:"comandas", e:"stock", v:"sales", r:"caixa", a:"avulsoProfit"}[e.key.toLowerCase()];
+          var kd = {c:"comandas", e:"stock", v:"sales", s:"caixa", a:"avulsoProfit"}[e.key.toLowerCase()];
           if(kd && !(TUTORIAL && document.body.classList.contains("tut-running"))){
             e.preventDefault();
             state.hotkeyItemId = null; state.screen = kd; state.forwardScreen=null; state.comandaDetailOrigin=null; state.openDebtsOrigin=null; state.lastEdit=null; clearUndoExpiry(); state.colorPicker=null; state.comandaLastAction=null; clearComandaUndoExpiry(); render();
@@ -4511,10 +4609,6 @@
       if(el && el.id==="app-title" && Date.now()-titleLongPressedAt<900){ return; }
       if(!el){
         // clicar fora dos itens (e fora da comanda avulsa montada) desseleciona
-        if(state.screen==="avulsoProfit" && !state.modal && state.avulsoSel && state.avulsoSel.length
-           && !e.target.closest(".sale-click, .avulso-panel, .modal-backdrop, button, input, select, a")){
-          state.avulsoSel = []; state.avulsoPrinted = false; render();
-        }
         return;
       }
       var action = el.getAttribute("data-action");
@@ -4555,6 +4649,22 @@
         var _g2 = el.closest(".perm-grp"); if(_g2){ var _cn = _g2.querySelectorAll(".perm-sub.on").length, _tt = _g2.querySelectorAll(".perm-sub").length, _ce = _g2.querySelector(".perm-cnt"); if(_ce) _ce.textContent = _cn+"/"+_tt; }
       }
       else if(action==="adv-slot"){ state.modal = {type:"advLayout", sel:parseInt(el.getAttribute("data-i"),10)}; render(); }
+      else if(action==="curve-zoom"){
+        var zsc = document.querySelector(".rp-scroll"), zr = zsc && zsc.scrollWidth ? (zsc.scrollLeft+zsc.clientWidth/2)/zsc.scrollWidth : 0;
+        var zc = (typeof state.curveZoom==="number" ? state.curveZoom : 2) + parseInt(el.getAttribute("data-d"),10);
+        state.curveZoom = Math.max(0, Math.min(5, zc)); render();
+        var zsc2 = document.querySelector(".rp-scroll"); if(zsc2) zsc2.scrollLeft = Math.max(0, zr*zsc2.scrollWidth - zsc2.clientWidth/2);
+      }
+      else if(action==="open-report-periods"){ state.modal = {type:"reportPeriods"}; render(); }
+      else if(action==="report-periods-save"){
+        if(!document.getElementById("rp-mode-step").checked){ data.reportStep = null; }
+        else {
+          var _rv = (document.getElementById("rp-step").value||"").trim();
+          if(!/^\d+$/.test(_rv) || parseInt(_rv,10)<2 || parseInt(_rv,10)>365){ state.modal.error = "Insira um número inteiro de 2 a 365."; render(); return; }
+          data.reportStep = parseInt(_rv,10);
+        }
+        state.reportDays = null; saveData(); state.modal = null; render();
+      }
       else if(action==="open-adv-period"){ state.modal = {type:"advPeriod"}; render(); }
       else if(action==="open-adv-layout"){ state.modal = {type:"advLayout"}; render(); }
       else if(action==="adv-layout-reset"){ state.modal = {type:"advLayoutReset"}; render(); }
@@ -4590,11 +4700,13 @@
       else if(action==="open-remove-password"){ state.modal={type:"removePassword", error:null}; render(); focusModalInput(); }
       else if(action==="modal-confirm-remove-password"){ doRemovePassword(); }
       else if(action==="submit-login"){ doSubmitLogin(); }
+      else if(action==="forgot-password"){ forgotPassword(); }
+      else if(action==="unlock-login"){ unlockLogin(); }
       else if(action==="submit-change-password"){ doSubmitChangePassword(); }
       else if(action==="pick-theme"){ setTheme(el.getAttribute("data-theme-id")); }
       else if(action==="pick-font"){ pickTitleFont(el.getAttribute("data-font")); }
       else if(action==="dash-days"){ state.dashDays = parseInt(el.getAttribute("data-days"),10)||1; render(); }
-      else if(action==="open-day"){ state.dayDetailIso = el.getAttribute("data-iso"); state.screen="dayDetail"; state.forwardScreen=null; render(); }
+      else if(action==="open-day"){ state.dayDetailIso = el.getAttribute("data-iso"); state.dayDetailTo = null; state.dayView = el.getAttribute("data-view") || null; state.dayOrigin = null; state.screen="dayDetail"; state.forwardScreen=null; render(); }
       else if(action==="ver-mais"){ state.daysShown += 5; render(); }
       else if(action==="ver-menos"){ state.daysShown = Math.max(6, state.daysShown-5); render(); }
       else if(action==="open-new-product"){ state.modal={type:"newProduct"}; render(); focusModalInput(); }
@@ -4610,7 +4722,12 @@
       else if(action==="filter-sales"){ state.salesFilterDays = parseInt(el.getAttribute("data-days"),10); render(); }
       else if(action==="sold-time"){ if(state.soldAbc && state.soldTime){ state.soldAbc = false; } else state.soldTime = !state.soldTime; render(); }
       else if(action==="sold-abc"){ state.soldAbc = !state.soldAbc; render(); }
-      else if(action==="open-sold-product"){ state.soldProduct = el.getAttribute("data-name"); state.screen = "soldProduct"; render(); }
+      else if(action==="open-sold-product"){ state.soldProduct = el.getAttribute("data-name"); state.soldDayIso = el.getAttribute("data-day") || null; state.soldDayTo = el.getAttribute("data-day-to") || null; state.soldSaleId = null; state.screen = "soldProduct"; render(); }
+      else if(action==="open-sold-sale"){ var osS = data.sales.find(function(x){ return x.id===el.getAttribute("data-id"); }); if(osS){ state.soldProduct = osS.itemName; state.soldSaleId = osS.id; state.soldDayIso = state.dayDetailIso; state.soldDayTo = state.dayDetailTo || null; state.screen = "soldProduct"; render(); } }
+      else if(action==="day-sales-group"){ state.daySalesGroup = state.daySalesGroup===false; render(); }
+      else if(action==="day-sales-sort"){ state.daySalesSort = el.getAttribute("data-mode"); render(); }
+      else if(action==="cx-preset"){ cxPreset(el.getAttribute("data-p")); }
+      else if(action==="cx-view-sales"){ cxRange(); state.dayDetailIso = state.cxFrom; state.dayDetailTo = state.cxTo===state.cxFrom ? null : state.cxTo; state.dayView = "sales"; state.dayOrigin = "caixa"; state.screen = "dayDetail"; state.forwardScreen = null; render(); }
       else if(action==="toggle-group-item"){
         var gk = String(state.salesFilterDays), gn = el.getAttribute("data-name");
         state.groupedItems = state.groupedItems || {};
@@ -4725,6 +4842,8 @@
       else if(action==="modal-submit-phone"){ submitFiadoPhone(); }
       else if(action==="bilhar-start"){ bilharStart(el.getAttribute("data-id")); }
       else if(action==="bilhar-stop"){ bilharStop(el.getAttribute("data-id")); }
+      else if(action==="bilhar-plan-add"){ bilharPlanAdj(el.getAttribute("data-id"), 1); }
+      else if(action==="bilhar-plan-sub"){ bilharPlanAdj(el.getAttribute("data-id"), -1); }
       else if(action==="bilhar-pay"){ bilharPay(); }
       else if(action==="bilhar-receive"){ state.modal = {type:"bilharPay", entryId:el.getAttribute("data-id")}; render(); }
       else if(action==="alerts-tab"){ state.alertsTab = el.getAttribute("data-tab"); render(); }
@@ -4788,7 +4907,7 @@
       else if(action==="modal-confirm-discount-sale"){ doConfirmDiscountSale(); }
       else if(action==="undo-sale"){ doUndoSale(); }
       else if(action==="toggle-mute"){ toggleMute(); }
-      else if(action==="toggle-big"){ bigText = !bigText; try{ localStorage.setItem("barapp_big", bigText?"1":"0"); }catch(e){} document.documentElement.classList.toggle("big", bigText); render(); }
+      else if(action==="toggle-big"){ bigLevel = bigLevel>=BIG_MAX ? 0 : bigLevel+1; applyBigLevel(); render(); }
       else if(action==="modal-cancel"){ state.modal=null; render(); }
       else if(action==="insert-div"){ var dvi = document.getElementById("modal-price-input"); if(dvi){ var dvs = dvi.selectionStart==null ? dvi.value.length : dvi.selectionStart, dve = dvi.selectionEnd==null ? dvs : dvi.selectionEnd; dvi.value = dvi.value.slice(0,dvs)+"/"+dvi.value.slice(dve); dvi.focus(); try{ dvi.setSelectionRange(dvs+1, dvs+1); }catch(e){} } }
       else if(action==="k-tab"){ state.kTab = el.getAttribute("data-tab"); render(); }
@@ -4913,6 +5032,12 @@
     };
 
     app.onchange = function(e){
+      if(e.target.id==="cx-from" || e.target.id==="cx-to"){
+        var fv = (document.getElementById("cx-from")||{}).value, tv = (document.getElementById("cx-to")||{}).value;
+        if(fv) state.cxFrom = fv; if(tv) state.cxTo = tv;
+        if(e.target.id==="cx-from" && fv && (!state.cxTo || state.cxTo<fv)) state.cxTo = fv;
+        cxRange(); render(); return;
+      }
       if(e.target.classList && e.target.classList.contains("mus-edit")){
         var mg = musData().gigs.find(function(g){ return g.id===e.target.getAttribute("data-id"); });
         if(!mg) return;
@@ -8153,7 +8278,19 @@ var qrcode = function() {
   function fixedData(){
     if(!data.fixed) data.fixed = {rent:null, staff:[], hires:[], paid:{}};
     data.fixed.staff = data.fixed.staff||[]; data.fixed.hires = data.fixed.hires||[]; data.fixed.paid = data.fixed.paid||{};
-    return data.fixed;
+    var f = data.fixed;
+    f.payLog = f.payLog||[];
+    if(!f.logV){
+      // pagamentos feitos antes deste recurso: recria o registro a partir do que já estava marcado como pago
+      f.logV = 1;
+      Object.keys(f.paid).forEach(function(key){
+        var m = /^(staff):([^|]+)\|/.exec(key) || /^(h):(.+)$/.exec(key); if(!m) return;
+        var e = m[1]==="staff" ? f.staff.find(function(x){ return x.id===m[2]; }) : f.hires.find(function(x){ return x.id===m[2]; });
+        if(!e) return;
+        f.payLog.push({key:key, date:f.paid[key], amount:r2(m[1]==="staff" ? e.amount : e.qty*e.daily), name:e.name, kind:m[1]==="staff" ? "staff" : "hire"});
+      });
+    }
+    return f;
   }
   function focusCalc(){ setTimeout(function(){ var i = document.getElementById("calc-total"); if(i) i.focus(); }, 0); }
   function calcDo(){
@@ -8266,6 +8403,7 @@ var qrcode = function() {
       cx.moves.push({id:uid(), date:nowLocalISO(), kind:"sangria", amount:r2(amount), note:label});
     }
     f.paid[key] = nowLocalISO();
+    if(k!=="rent") f.payLog.push({key:key, date:f.paid[key], amount:r2(amount), name:e.name, kind:(k==="staff" ? "staff" : "hire")});
     f.paidMove = f.paidMove || {};
     if(mode==="Dinheiro"){ var _cx = caixaData(); f.paidMove[key] = _cx.moves[_cx.moves.length-1].id; }
     saveData(); render(); showToast(label+" pago ("+fmtBRL(amount)+")"+(mode==="Dinheiro" ? " — registrado como Sangria." : "."));
@@ -8278,6 +8416,7 @@ var qrcode = function() {
       saveData(); render(); showToast("Contratação de "+e.name+" removida."); return;
     }
     delete f.paid[key];
+    f.payLog = (f.payLog||[]).filter(function(x){ return x.key!==key; });
     var mid = (f.paidMove||{})[key]; if(f.paidMove) delete f.paidMove[key];
     var removed = false;
     if(mid){ var cx = caixaData(), n = cx.moves.length; cx.moves = cx.moves.filter(function(mv){ return mv.id!==mid; }); removed = cx.moves.length<n; }
@@ -8368,6 +8507,7 @@ var qrcode = function() {
       }
     }
     var cxClean = !!(TUTORIAL && data.tut && data.tut.active && (tutMods(data.tut.scen, data.tut.lvl)[data.tut.mod]||{}).id==="caixa");
+    if(!cxClean && (isAdmin() || can("cxOpen"))) html += cxQueryHtml();
     if(cx.history.length && !cxClean){
       state.caixaHistOpen = state.caixaHistOpen || {};
       html += '<div class="card"><div class="card-head"><h2>Fechamentos anteriores</h2></div>'
@@ -8390,6 +8530,55 @@ var qrcode = function() {
             return '<div style="border-top:1px solid var(--border);padding:6px 0;">'+head+body+'</div>';
           }).join("") + '</div>';
     }
+    return html;
+  }
+  // ----- Caixa: consulta por data e período -----
+  function cxRange(){
+    var t = todayISO();
+    if(!state.cxFrom || !/^\d{4}-\d{2}-\d{2}$/.test(state.cxFrom)) state.cxFrom = t;
+    if(!state.cxTo || !/^\d{4}-\d{2}-\d{2}$/.test(state.cxTo)) state.cxTo = state.cxFrom;
+    if(state.cxTo < state.cxFrom){ var x = state.cxFrom; state.cxFrom = state.cxTo; state.cxTo = x; }
+  }
+  function cxPreset(p){
+    var t = todayISO();
+    if(p==="today"){ state.cxFrom = t; state.cxTo = t; }
+    else if(p==="yesterday"){ state.cxFrom = isoDaysAgo(1); state.cxTo = isoDaysAgo(1); }
+    else if(p==="7"){ state.cxFrom = isoDaysAgo(6); state.cxTo = t; }
+    else if(p==="30"){ state.cxFrom = isoDaysAgo(29); state.cxTo = t; }
+    else if(p==="month"){ state.cxFrom = t.slice(0,8)+"01"; state.cxTo = t; }
+    render();
+  }
+  function cxQueryHtml(){
+    cxRange();
+    var from = state.cxFrom, to = state.cxTo;
+    var rec = caixaCalc(from+"T00:00:00", to+"T23:59:59");
+    var vendido = 0, compras = 0, pessoal = [], pessoalTot = 0, d = new Date(from+"T00:00:00"), end = new Date(to+"T00:00:00"), guard = 0;
+    while(d<=end && guard++<800){
+      var iso = localDateISO(d), t = dayTotals(iso);
+      vendido += t.vendas; compras += t.compras;
+      fxPaysOn(iso).forEach(function(x){ pessoal.push({date:x.date, name:fxPayDesc(x), total:x.amount}); });
+      if(data.musicians) (data.musicians.gigs||[]).forEach(function(g){ if(g.date===iso && !g.reverted){ var mm = data.musicians.list.find(function(q){ return q.id===g.mid; }); pessoal.push({date:iso+"T23:59:59", name:"Pagamento de "+(mm?mm.name:"?")+" - Músico", total:g.price||0}); } });
+      d.setDate(d.getDate()+1);
+    }
+    pessoal.sort(function(a,b){ return a.date<b.date ? 1 : -1; });
+    pessoal.forEach(function(x){ pessoalTot += x.total; });
+    var chips = [["today","Hoje"],["yesterday","Ontem"],["7","7 dias"],["30","30 dias"],["month","Este mês"]].map(function(c){
+      return '<button type="button" class="chip" data-action="cx-preset" data-p="'+c[0]+'">'+c[1]+'</button>';
+    }).join("");
+    var html = '<div class="card" id="cx-query"><div class="card-head"><h2>Consultar por data</h2></div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">'+chips+'</div>'
+      + '<div class="row-inline"><div class="field"><label>De</label><input type="date" id="cx-from" value="'+from+'" max="'+todayISO()+'"></div>'
+      + '<div class="field"><label>Até</label><input type="date" id="cx-to" value="'+to+'" max="'+todayISO()+'"></div></div>'
+      + '<div class="cx-line"><span>Vendido no período</span><span class="num">'+fmtBRL(vendido)+'</span></div>'
+      + '<div class="cx-line cx-hv"><span>💵 Dinheiro recebido</span><span class="num">'+fmtBRL(rec.dinheiro)+'</span></div>'
+      + '<div class="cx-line cx-hv"><span><span class="pm-ico">'+ICONS.qr+'</span>Pix recebido</span><span class="num">'+fmtBRL(rec.pix)+'</span></div>'
+      + '<div class="cx-line cx-hv"><span>💳 Cartão recebido</span><span class="num">'+fmtBRL(rec.cartao)+'</span></div>'
+      + (rec.outros>0 ? '<div class="cx-line"><span>Outros/antigos</span><span class="num">'+fmtBRL(rec.outros)+'</span></div>' : '')
+      + '<div class="cx-line big"><span>Total recebido</span><span class="num">'+fmtBRL(rec.total)+'</span></div>'
+      + '<div class="cx-line"><span style="color:var(--text-dim);">Gastos (compras e pessoal)</span><span class="num">−'+fmtBRL(compras)+'</span></div>'
+      + (pessoal.length ? '<div style="font-size:calc(12px*var(--fs,1));color:var(--text-dim);margin:10px 0 2px;">Pagamentos de pessoal no período (já incluídos nos gastos): <b>'+fmtBRL(pessoalTot)+'</b></div>'
+          + pessoal.map(function(x){ return '<div class="hist-line"><span>'+escapeHtml(x.name)+' <span class="meta">'+fmtDateShort(x.date.slice(0,10))+'</span></span><b class="num">−'+fmtBRL(x.total)+'</b></div>'; }).join("") : '')
+      + '<button class="btn secondary" style="width:100%;margin-top:12px;" data-action="cx-view-sales">Ver vendas do período</button></div>';
     return html;
   }
   function caixaReceipt(h){
@@ -9041,12 +9230,21 @@ var qrcode = function() {
     t.style.left = x+"px"; t.style.top = y+"px";
     barTipTimer = setTimeout(function(){ var e = document.getElementById("bar-tip"); if(e) e.remove(); }, 2800);
   }
-  var REPORT_PERIODS = [[1,"Hoje"],[7,"7 dias"],[30,"30 dias"]];
+  function reportPeriods(){
+    var step = parseInt(data.reportStep,10), out = [];
+    if(step>=2){ for(var q=1; q<=6 && step*q<=365; q++) out.push([step*q, step*q+" dias"]); }
+    else out = [[7,"7 dias"],[15,"15 dias"],[30,"30 dias"],[60,"60 dias"]];
+    return out;
+  }
+  function reportDaysSel(){
+    var cur = parseInt(state.reportDays,10) || 0, ps = reportPeriods();
+    return ps.some(function(x){ return x[0]===cur; }) ? cur : ps[0][0];
+  }
   function renderReportProduct(){
-    var name = state.rpProduct || "", days = state.reportDays || 7;
+    var name = state.rpProduct || "", days = reportDaysSel();
     var html = backArrowBtn() + '<div class="end-btns" style="justify-content:space-between;align-items:center;margin:0 0 14px;gap:8px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;min-width:0;overflow-wrap:anywhere;">'+escapeHtml(name)+'</h2>'
       + '<button type="button" class="hamburger-btn" style="z-index:auto;'+((data.productNotes||{})[name]?'color:var(--accent);border-color:var(--accent);':'')+'" data-action="open-product-notes" title="Anotações" aria-label="Anotações">'+ICONS.note+'</button></div>';
-    html += chipRow(REPORT_PERIODS, days, "report-days", "days");
+    html += chipRow(reportPeriods(), days, "report-days", "days");
     var from = isoDaysAgo(days-1), pFrom = isoDaysAgo(2*days-1), pTo = isoDaysAgo(days);
     function inR(d, a, b){ d = d.slice(0,10); return d>=a && (b===undefined || d<=b); }
     function calc(a, b){
@@ -9098,6 +9296,8 @@ var qrcode = function() {
     (data.deletedRestocks||[]).forEach(function(x){ see(x.date); });
     (data.itemRefunds||[]).forEach(function(f){ see(f.date); });
     Object.keys(data.dailyAdjustments||{}).forEach(see);
+    (fixedData().payLog||[]).forEach(function(x){ see(x.date); });
+    if(data.musicians) (data.musicians.gigs||[]).forEach(function(g){ if(!g.reverted) see(g.date); });
     return from;
   }
   function curveDays(){
@@ -9111,6 +9311,8 @@ var qrcode = function() {
       kIngs().forEach(function(g){ (g.restocks||[]).forEach(function(x){ see(x.date); }); });
       (data.deletedRestocks||[]).forEach(function(x){ see(x.date); });
       (data.itemRefunds||[]).forEach(function(f){ see(f.date); });
+      (fixedData().payLog||[]).forEach(function(x){ see(x.date); });
+      if(data.musicians) (data.musicians.gigs||[]).forEach(function(g){ if(!g.reverted) see(g.date); });
     } else from = isoDaysAgo(parseInt(r.mode,10)-1);
     var out = [], d = new Date(from+"T00:00:00"), end = new Date(to+"T00:00:00"), guard = 0;
     while(d<=end && guard++<4000){ out.push(localDateISO(d)); d.setDate(d.getDate()+1); }
@@ -9138,7 +9340,8 @@ var qrcode = function() {
     days.forEach(function(iso){
       var dm = dayMap[iso] || {g:0, c:0}, net = dm.g - dm.c;
       gan.push(dm.g); gas.push(dm.c); dayv.push(net);
-      vals.push(kind==="acc" ? (accMap[iso]!==undefined ? accMap[iso] : acc) : net);
+      // antes do primeiro registro de compra ou venda o gráfico fica zerado
+      vals.push(kind==="acc" ? (iso<first ? 0 : (accMap[iso]!==undefined ? accMap[iso] : acc)) : net);
     });
     var n = vals.length, tot = dayv.reduce(function(a,b){ return a+b; }, 0);
     var best = 0, worst = 0, up = 0, down = 0;
@@ -9183,11 +9386,12 @@ var qrcode = function() {
     }).join("");
     function mark(i, col){ return '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(vals[i]).toFixed(1)+'" r="4" fill="'+col+'" stroke="#fff" stroke-width="1.2"/>'; }
     var marks = "";
-    if(kind==="day" && n>1 && vals[best]>0.004) marks += mark(best, "#2fbf6a");
-    if(kind==="day" && n>1 && vals[worst]<-0.004) marks += mark(worst, "#e0574a");
+
     html += chipRow([["acc","Lucro total acumulado"],["day","Por dia"]], kind, "curve-kind", "k");
-    html += '<div class="card"><div class="card-head"><h2>'+(kind==="acc" ? 'Lucro total ao longo do tempo' : 'Lucros/Gastos por dia')+'</h2></div>'
-      + '<div class="rp-scroll" style="color:var(--text-dim);"><svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="display:block;min-width:100%;max-width:none;'+(W<=360?'width:100%;height:auto;':'')+'" role="img" aria-label="Gráfico em curva de lucros e prejuízos">'
+    var ZL = [0.5,0.75,1,1.5,2,3], zi = (typeof state.curveZoom==="number" && state.curveZoom>=0 && state.curveZoom<ZL.length) ? state.curveZoom : 2, zf = ZL[zi];
+    var zoomBtn = function(d, sym, ttl, dis){ return '<button type="button" class="cv-zoom" data-action="curve-zoom" data-d="'+d+'" title="'+ttl+'" aria-label="'+ttl+'"'+(dis?' disabled':'')+'>'+sym+'</button>'; };
+    html += '<div class="card"><div class="card-head"><h2>'+(kind==="acc" ? 'Lucro total ao longo do tempo' : 'Lucros/Gastos por dia')+'</h2><span style="display:flex;gap:6px;">'+zoomBtn(-1,'−','Diminuir o zoom',zi<=0)+zoomBtn(1,'+','Aumentar o zoom',zi>=ZL.length-1)+'</span></div>'
+      + '<div class="rp-scroll" style="color:var(--text-dim);"><svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="display:block;max-width:none;'+(zf===1 ? 'min-width:100%;'+(W<=360?'width:100%;height:auto;':'') : 'width:'+(zf*100)+'%;height:auto;')+'" role="img" aria-label="Gráfico em curva de lucros e prejuízos">'
       + '<defs><clipPath id="cv-up"><rect x="0" y="0" width="'+W+'" height="'+zy.toFixed(1)+'"/></clipPath><clipPath id="cv-dn"><rect x="0" y="'+zy.toFixed(1)+'" width="'+W+'" height="'+(H-zy).toFixed(1)+'"/></clipPath></defs>'
       + ticks
       + '<path d="'+area+'" fill="#2fbf6a" fill-opacity=".38" clip-path="url(#cv-up)"/><path d="'+area+'" fill="#e0574a" fill-opacity=".38" clip-path="url(#cv-dn)"/>'
@@ -9325,10 +9529,10 @@ var qrcode = function() {
   }
 
   function renderReports(){
-    var days = state.reportDays || 7;
+    var days = reportDaysSel();
     var html = screenHeader("Relatórios", "featReports");
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
-      + chipRow(REPORT_PERIODS, days, "report-days", "days")
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">'+chipRow(reportPeriods(), days, "report-days", "days").replace('margin-bottom:12px;flex-wrap:wrap;','margin-bottom:12px;flex-wrap:wrap;')+'<button type="button" class="chip" data-action="open-report-periods" title="Escolher os períodos" aria-label="Escolher os períodos" style="display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-bottom:12px;height:36px;padding:0 12px;box-sizing:border-box;">'+ICONS.gear+'</button></div>'
       + '<div style="display:flex;gap:6px;flex:0 0 auto;"><button type="button" class="chip" data-action="reports-curve" title="Gráfico em Curva" aria-label="Gráfico em Curva" style="display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-bottom:12px;height:36px;padding:0 14px;box-sizing:border-box;">'+ICONS.curve+'</button>'+(featOn("musicos") ? '<button type="button" class="chip" data-action="reports-music" title="Músicos: comparar vendas" aria-label="Músicos: comparar vendas" style="display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-bottom:12px;height:36px;padding:0 14px;box-sizing:border-box;">'+ICONS.music+'</button>' : '')+'<button type="button" class="chip" data-action="reports-prices" title="Histórico de Preços" aria-label="Histórico de Preços" style="display:flex;align-items:center;justify-content:center;flex:0 0 auto;margin-bottom:12px;height:36px;padding:0 14px;box-sizing:border-box;">'+ICONS.tag+'</button></div></div>';
     var from = isoDaysAgo(days-1), pFrom = isoDaysAgo(2*days-1), pTo = isoDaysAgo(days);
     var cur = data.sales.filter(function(s){ return s.date.slice(0,10) >= from; });
@@ -9791,7 +9995,7 @@ var qrcode = function() {
     var ms = Date.now() - new Date(t.startedAt).getTime();
     var e = {id:uid(), tableId:t.id, table:tableLabel(t), startedAt:t.startedAt, endedAt:nowLocalISO(), ms:ms, rate:bd.rate, value:bilharCost(ms, bd.rate), paidAt:null, method:null};
     if(t.clientId){ e.clientId = t.clientId; e.sessionId = t.sessionId; e.saleId = t.saleId; var ss = data.sales.find(function(x){ return x.id===t.saleId; }); if(ss){ ss.sellPrice = e.value; ss.entryId = e.id; } }
-    bd.history.unshift(e); t.startedAt = null; t.clientId = null; t.sessionId = null; t.saleId = null;
+    bd.history.unshift(e); t.startedAt = null; t.cd = false; t.alarmed = false; bilAlarmSync(); t.clientId = null; t.sessionId = null; t.saleId = null;
     saveData(); state.modal = {type:"bilharPay", entryId:e.id}; render();
   }
   function bilharPay(){
@@ -9861,7 +10065,7 @@ var qrcode = function() {
       // a partida por hora abre uma comanda dinâmica (tempo e valor correm dentro dela)
       var hc = {id:uid(), name:n1, status:null, sessions:[], notes:"", bilhar:true, kind:"hora", tableId:t.id}, hse = {id:uid(), closed:false, abatido:0, payments:[]}, hsid = uid();
       hc.sessions.push(hse); data.clients.push(hc);
-      t.startedAt = nowLocalISO(); t.clientId = hc.id; t.sessionId = hse.id; t.saleId = hsid;
+      t.startedAt = nowLocalISO(); t.clientId = hc.id; t.sessionId = hse.id; t.saleId = hsid; t.cd = true; t.alarmed = false; t.plan = bilharPlan(t);
       data.sales.push({id:hsid, itemId:"__hora__", itemName:"Hora", qty:1, sellPrice:0, buyPrice:0, date:t.startedAt, clientId:hc.id, comandaSessionId:hse.id, hora:true, tableId:t.id});
       sortClientsAlpha();
       state.modal = null; saveData(); render();
@@ -9932,6 +10136,86 @@ var qrcode = function() {
       + (isAdmin() ? '<button class="btn secondary" style="flex:0 0 auto;" data-action="bilhar-ficha-del" data-id="'+f.id+'" title="Excluir" aria-label="Excluir">×</button>' : '')
       + '</div></div>';
   }
+  // ----- Bilhar: tempo da partida (contagem regressiva) e alarme -----
+  var BIL_STEP = 1800000;
+  function bilharPlan(t){ return (t && t.plan>=BIL_STEP) ? t.plan : 3600000; }
+  function bilharPlanLabel(ms){
+    var m = Math.round(ms/60000), h = Math.floor(m/60), r = m%60;
+    return h ? (r ? h+" h "+pad2(r) : h+" h") : r+" min";
+  }
+  function bilharPlanRow(t, running){
+    var pl = bilharPlan(t);
+    return '<div class="bil-plan"><button type="button" class="bil-plan-btn" data-action="bilhar-plan-sub" data-id="'+t.id+'" title="Tirar 30 minutos" aria-label="Tirar 30 minutos"'+(pl<=BIL_STEP?' disabled':'')+'>−</button>'
+      + '<span class="bil-plan-val">'+(running?'Tempo total: ':'Tempo: ')+'<b>'+bilharPlanLabel(pl)+'</b></span>'
+      + '<button type="button" class="bil-plan-btn" data-action="bilhar-plan-add" data-id="'+t.id+'" title="Acrescentar 30 minutos" aria-label="Acrescentar 30 minutos">+</button></div>';
+  }
+  function bilharPlanAdj(id, dir){
+    var t = bilharData().tables.find(function(x){ return x.id===id; }); if(!t) return;
+    t.plan = Math.max(BIL_STEP, Math.min(12*3600000, bilharPlan(t)+dir*BIL_STEP));
+    if(t.startedAt && t.cd && Date.now()-new Date(t.startedAt).getTime() < t.plan){ t.alarmed = false; bilAlarmSync(); }
+    saveData(); render();
+  }
+  var bilAlarm = {ctx:null, timer:null, nodes:[], ringing:[]};
+  function bilAlarmCtx(){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return null;
+      if(!bilAlarm.ctx) bilAlarm.ctx = new AC();
+      if(bilAlarm.ctx.state==="suspended") bilAlarm.ctx.resume();
+      return bilAlarm.ctx;
+    }catch(e){ return null; }
+  }
+  ["pointerdown","keydown","touchstart"].forEach(function(ev){ document.addEventListener(ev, function(){ bilAlarmCtx(); }, {passive:true}); });
+  // um "trrrrring" de despertador antigo: tom de ~1,8 kHz modulado a 28 Hz, 1 s de toque e 0,8 s de pausa
+  function bilAlarmBurst(){
+    var c = bilAlarmCtx(); if(!c) return;
+    var t0 = c.currentTime, dur = 1.0;
+    var g = c.createGain(); g.gain.setValueAtTime(0, t0); g.connect(c.destination);
+    var lfo = c.createOscillator(), lg = c.createGain();
+    lfo.type = "square"; lfo.frequency.value = 28; lg.gain.value = 0.42; lfo.connect(lg); lg.connect(g.gain);
+    g.gain.setValueAtTime(0.42, t0); g.gain.setValueAtTime(0.42, t0+dur-0.03); g.gain.linearRampToValueAtTime(0, t0+dur);
+    [1760, 1835].forEach(function(f){
+      var o = c.createOscillator(); o.type = "square"; o.frequency.value = f; o.connect(g); o.start(t0); o.stop(t0+dur); bilAlarm.nodes.push(o);
+    });
+    lfo.start(t0); lfo.stop(t0+dur); bilAlarm.nodes.push(lfo);
+    setTimeout(function(){ bilAlarm.nodes = bilAlarm.nodes.filter(function(n){ return n.context && false; }); }, (dur+0.2)*1000);
+  }
+  function bilAlarmBanner(){
+    var el = document.getElementById("bil-alarm");
+    var list = bilAlarm.ringing.map(function(id){ return bilharData().tables.find(function(x){ return x.id===id; }); }).filter(Boolean);
+    if(!list.length){ if(el) el.remove(); return; }
+    if(!el){ el = document.createElement("div"); el.id = "bil-alarm"; document.body.appendChild(el);
+      el.addEventListener("click", function(e){
+        var b = e.target.closest("[data-bal]"); if(!b) return;
+        var id = b.getAttribute("data-id"), a = b.getAttribute("data-bal");
+        if(a==="stop"){ bilAlarm.ringing = bilAlarm.ringing.filter(function(x){ return x!==id; }); bilAlarmSync(); }
+        else if(a==="add"){ bilAlarm.ringing = bilAlarm.ringing.filter(function(x){ return x!==id; }); bilharPlanAdj(id, 1); bilAlarmSync(); }
+        else if(a==="end"){ bilAlarm.ringing = bilAlarm.ringing.filter(function(x){ return x!==id; }); bilAlarmSync(); state.screen = "bilhar"; state.modal = null; bilharStop(id); }
+      });
+    }
+    el.innerHTML = list.map(function(t){
+      var nm = t.clientId ? (findClient(t.clientId)||{}).name : "";
+      return '<div class="bil-alarm-row"><div class="bil-alarm-txt">⏰ <b>Tempo esgotado</b> — '+escapeHtml(plainLabel(tableLabel(t)))+(nm?' ('+escapeHtml(nm)+')':'')+'</div>'
+        + '<div class="bil-alarm-btns"><button type="button" data-bal="stop" data-id="'+t.id+'">Parar alarme</button><button type="button" data-bal="add" data-id="'+t.id+'">+30 min</button><button type="button" data-bal="end" data-id="'+t.id+'">Encerrar e cobrar</button></div></div>';
+    }).join("");
+  }
+  // liga/desliga o som e o aviso conforme as mesas que estão tocando
+  function bilAlarmSync(){
+    var bd = bilharData();
+    bilAlarm.ringing = bilAlarm.ringing.filter(function(id){ var t = bd.tables.find(function(x){ return x.id===id; }); return t && t.startedAt && t.cd; });
+    bilAlarmBanner();
+    if(bilAlarm.ringing.length && !bilAlarm.timer){ bilAlarmBurst(); bilAlarm.timer = setInterval(bilAlarmBurst, 1800); }
+    if(!bilAlarm.ringing.length && bilAlarm.timer){ clearInterval(bilAlarm.timer); bilAlarm.timer = null; bilAlarm.nodes.forEach(function(n){ try{ n.stop(); }catch(e){} }); bilAlarm.nodes = []; }
+  }
+  function bilharCheckAlarms(){
+    if(typeof data==="undefined" || !data || !data.bilhar || !state.loggedIn) return;
+    var changed = false;
+    data.bilhar.tables.forEach(function(t){
+      if(!t.startedAt || !t.cd || t.alarmed) return;
+      if(Date.now()-new Date(t.startedAt).getTime() >= bilharPlan(t)){ t.alarmed = true; bilAlarm.ringing.push(t.id); changed = true; }
+    });
+    if(changed){ saveData(); bilAlarmSync(); }
+  }
+  setInterval(bilharCheckAlarms, 1000);
   function renderBilhar(){
     var bd = bilharData(), html = backArrowBtn() + '<div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;"><h2 style="font-size:calc(18px*var(--fs,1));margin:0;display:flex;align-items:center;gap:8px;">Bilhar <span style="display:inline-flex;color:var(--accent);">'+ICONS.featBilhar+'</span></h2>'
       + '<button type="button" data-action="bil-bot" aria-label="Ajuda" title="Ajuda" style="background:none;border:none;font-size:calc(22px*var(--fs,1));line-height:1;padding:0 2px;cursor:pointer;color:var(--text-dim);">'+(state.bilBot ? '🤖' : ICO_INFO)+'</button>'
@@ -9961,11 +10245,13 @@ var qrcode = function() {
           + '<button class="btn" data-action="bilhar-ficha-new" data-id="'+t.id+'" data-kind="md3">Melhor de 3</button></div>'
           + (ents.length ? '<div style="margin-top:10px;">'+ents.map(fichaEntryHtml).join("")+'</div>' : '<div class="bil-free" style="margin-top:10px;">Nenhuma entrada ainda.</div>');
       } else if(run){
-        body = '<div class="bil-timer" data-start="'+t.startedAt+'">'+fmtDur(Date.now()-new Date(t.startedAt).getTime())+'</div>'
-          + '<div style="color:var(--text-dim);font-size:calc(13px*var(--fs,1));margin:2px 0 10px;">Parcial: <b class="bil-val" style="color:inherit">'+fmtBRL(bilharCost(Date.now()-new Date(t.startedAt).getTime()))+'</b> · início '+fmtTime(t.startedAt)+'</div>'
+        var elMs = Date.now()-new Date(t.startedAt).getTime(), leftMs = t.cd ? bilharPlan(t)-elMs : null;
+        body = '<div class="bil-timer'+(t.cd ? ' cd' : '')+(t.cd && leftMs<=0 ? ' over' : '')+'" data-start="'+t.startedAt+'"'+(t.cd ? ' data-plan="'+bilharPlan(t)+'"' : '')+'>'+fmtDur(t.cd ? leftMs : elMs)+'</div>'
+          + (t.cd ? bilharPlanRow(t, true) : '')
+          + '<div style="color:var(--text-dim);font-size:calc(13px*var(--fs,1));margin:2px 0 10px;">Parcial: <b class="bil-val" style="color:inherit">'+fmtBRL(bilharCost(elMs))+'</b> · início '+fmtTime(t.startedAt)+'</div>'
           + '<button class="btn" style="width:100%;" data-action="bilhar-stop" data-id="'+t.id+'">Encerrar e cobrar</button>';
       } else {
-        body = '<div class="bil-free" style="margin-bottom:10px;">Livre</div><button class="btn" style="width:100%;" data-action="bilhar-start" data-id="'+t.id+'">Iniciar</button>';
+        body = '<div class="bil-free" style="margin-bottom:8px;">Livre</div>' + bilharPlanRow(t) + '<button class="btn" style="width:100%;" data-action="bilhar-start" data-id="'+t.id+'">Iniciar</button>';
       }
       return '<div class="card bil-card">'+head+body+'</div>';
     }).join("");
@@ -9993,8 +10279,9 @@ var qrcode = function() {
     if(state.screen!=="bilhar" || state.modal) return;
     var rate = bilharData().rate, run = 0;
     Array.prototype.forEach.call(document.querySelectorAll(".bil-timer"), function(el){
-      var ms = Date.now() - new Date(el.getAttribute("data-start")).getTime();
-      el.textContent = fmtDur(ms);
+      var ms = Date.now() - new Date(el.getAttribute("data-start")).getTime(), pl = parseFloat(el.getAttribute("data-plan"));
+      el.textContent = fmtDur(pl ? pl-ms : ms);
+      if(pl) el.classList.toggle("over", pl-ms<=0);
       run += r2(ms/3600000*rate);
       var v = el.nextElementSibling && el.nextElementSibling.querySelector(".bil-val");
       if(v) v.textContent = fmtBRL(r2(ms/3600000*rate));
@@ -10501,7 +10788,7 @@ var qrcode = function() {
   // Histórico de telas visitadas: o botão "voltar" do celular volta SEMPRE para a tela anterior
   // (a que a pessoa estava antes), com o contexto dela (cliente, item, dia...).
   var lastScreenRendered = null;
-  var navStack = [], navPopping = false, NAV_CTX = ["selectedItemId","itemOrigin","selectedClientId","dayDetailIso","comandaDetailOrigin","openDebtsOrigin","phFromReports","soldProduct","curveRange","rpProduct","musFrom","musId","reportDays","kTab","stockTab"];
+  var navStack = [], navPopping = false, NAV_CTX = ["dayView","dayDetailTo","dayOrigin","soldDayIso","soldDayTo","soldSaleId","cxFrom","cxTo","selectedItemId","itemOrigin","selectedClientId","dayDetailIso","comandaDetailOrigin","openDebtsOrigin","phFromReports","soldProduct","curveRange","rpProduct","musFrom","musId","reportDays","kTab","stockTab"];
   function navCtx(){ var o = {}; NAV_CTX.forEach(function(k){ o[k] = state[k]; }); return o; }
   var navLast = {screen:"dashboard", ctx:{}};
   function navTrack(){
@@ -10538,6 +10825,8 @@ var qrcode = function() {
     if(screen==="comandaDetail"){ state.screen=state.comandaDetailOrigin||"comandas"; state.comandaDetailOrigin=null; render(); return; }
     if(screen==="openDebts"){ state.screen=state.openDebtsOrigin||"dashboard"; state.openDebtsOrigin=null; render(); return; }
     if(screen==="reportProduct" || screen==="curve"){ state.screen="reports"; render(); return; }
+    if(screen==="soldProduct" && state.soldDayIso){ state.dayDetailIso = state.soldDayIso; state.dayDetailTo = state.soldDayTo || null; state.dayView = "sales"; state.soldDayIso = null; state.soldDayTo = null; state.soldSaleId = null; state.screen="dayDetail"; render(); return; }
+    if(screen==="dayDetail" && state.dayOrigin){ var dor = state.dayOrigin; state.dayOrigin = null; state.screen = dor; render(); return; }
     if(screen==="soldProduct" || screen==="quickSale"){ if(screen==="quickSale") state.qs = null; state.screen="sales"; render(); return; }
     if(screen==="musicianDetail"){ state.screen="musicians"; render(); return; }
     if(screen==="musicCompare"){ state.screen = state.musFrom==="reports" ? "reports" : "musicians"; render(); return; }
@@ -11004,6 +11293,34 @@ var qrcode = function() {
     showToast(willClose ? "Comanda paga integralmente." : "Pagamento de "+fmtBRL(val)+" registrado. Restam "+fmtBRL(devido-val)+".");
   }
 
+  // ----- senha esquecida: o suporte libera a entrada sem senha pelo Supabase (ver migration-004.sql) -----
+  function pwUnlockAvailable(){
+    try{
+      var until = parseInt(localStorage.getItem("bf_pw_unlock")||"0",10), used = localStorage.getItem("bf_pw_unlock_used");
+      return until>Date.now() && String(until)!==used;
+    }catch(e){ return false; }
+  }
+  function forgotPassword(){
+    state.loginInfo = "Verificando com o suporte…"; render();
+    var done = function(){
+      state.loginInfo = pwUnlockAvailable() ? null : "Ainda não há liberação. Peça ao suporte para liberar o acesso e toque em Esqueci minha senha de novo.";
+      render();
+    };
+    try{
+      if(typeof window.bfRecheckLicense==="function") window.bfRecheckLicense().then(done, done);
+      else done();
+    }catch(e){ done(); }
+  }
+  function unlockLogin(){
+    if(!pwUnlockAvailable()) return;
+    try{ localStorage.setItem("bf_pw_unlock_used", localStorage.getItem("bf_pw_unlock")); }catch(e){}
+    var role = state.loginRole==="admin" ? "admin" : "user";
+    data.pwOff = data.pwOff || {}; data.pwOff[role] = true; saveData();
+    state.role = role; state.exitPrompt = false; state.loggedIn = true; state.loginError = null; state.loginInfo = null; state.loginFading = true;
+    state.screen = "changePassword"; state.changePasswordError = null;
+    render();
+    showToast("Senha removida. Defina uma nova senha agora.", 4500);
+  }
   function doSubmitLogin(){
     var input = document.getElementById("login-password-input");
     var entered = input ? input.value : "";
@@ -11083,9 +11400,15 @@ var qrcode = function() {
   // ---------- button click sound (settings area only) ----------
   // plain, short "tick" synthesised with WebAudio (no audio files needed)
   var clickAudioCtx = null;
-  var bigText = false;
-  try{ bigText = localStorage.getItem("barapp_big")==="1"; }catch(err){}
-  if(bigText) document.documentElement.classList.add("big");
+  var BIG_MAX = 6;
+  function applyBigLevel(){
+    try{ localStorage.setItem("barapp_big", String(bigLevel)); }catch(e){}
+    var h = document.documentElement; h.classList.toggle("big", bigLevel>0);
+    if(bigLevel>0) h.style.setProperty("--fs", (1+0.12*bigLevel).toFixed(2)); else h.style.removeProperty("--fs");
+  }
+  var bigLevel = 0;
+  try{ bigLevel = Math.max(0, Math.min(BIG_MAX, parseInt(localStorage.getItem("barapp_big"),10)||0)); }catch(err){}
+  applyBigLevel();
   var soundMuted = false;
   try{ soundMuted = localStorage.getItem("barapp_muted")==="1"; }catch(err){}
   function toggleMute(){

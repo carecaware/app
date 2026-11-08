@@ -68,6 +68,8 @@
       if (ct.indexOf("text/html") === 0) {
         return r.text().then(function (html) {
           try { localStorage.setItem(LS_KEY, key); } catch (e) {}
+          // liberação temporária de entrada sem senha, definida pelo suporte (0 = nenhuma)
+          try { var ul = parseInt(r.headers.get("x-pw-unlock-until") || "0", 10); if (ul > Date.now()) localStorage.setItem("bf_pw_unlock", String(ul)); else localStorage.removeItem("bf_pw_unlock"); } catch (e) {}
           // o app existe só em memória: substitui esta página e não é gravado em arquivo
           document.open(); document.write(html); document.close();
         });
