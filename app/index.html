@@ -246,7 +246,7 @@
   .comanda-print-row{display:flex;align-items:center;justify-content:center;position:relative;padding:2px 0 6px;}
   .btn-row.sale-row3{gap:8px;}
   .btn-row.sale-row3 .btn{padding:12px 8px;font-size:calc(16.8px*var(--fs,1));line-height:1.15;min-width:0;}
-  .btn-row.sale-row3 .btn.qs-btn{flex:.7;margin-left:20px;font-weight:400;}
+  .btn-row.sale-row3 .btn.qs-btn{flex:.7;margin-left:20px;}
   .qs-dots{display:flex;justify-content:space-between;gap:4px;margin:2px 0 12px;padding:10px 14px 0;}
   .qs-dot{position:relative;width:calc(20px*var(--fs,1));height:calc(20px*var(--fs,1));flex:none;border-radius:50%;border:1.5px solid var(--accent);background:transparent;padding:0;cursor:pointer;}
   .qs-dot::after{content:"";position:absolute;inset:3px;border-radius:50%;background:transparent;transition:background .12s ease;}
@@ -321,13 +321,18 @@
   .feat-tabs{position:fixed;left:0;bottom:92px;z-index:900;display:flex;flex-direction:column;gap:6px;}
   .feat-tab{width:34px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--bg-elev-2);color:var(--accent);border:1px solid var(--accent);border-left:none;border-radius:0 10px 10px 0;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer;padding:0;transition:width .15s;}
   .feat-tab:hover{width:42px;}
+  .feat-tabs:not(.bar):not(.trad-feats) .feat-tab{justify-content:flex-end;padding-right:6px;box-shadow:inset 0 2px 0 var(--accent),0 2px 8px rgba(0,0,0,.35);}
   .feat-tabs:not(.bar) .feat-tab{touch-action:none;}
   .feat-tab.shifting{transition:transform .15s;}
-  .feat-tabs.bar .feat-tab[data-fk]{touch-action:none;-webkit-touch-callout:none;}
+  .feat-tabs.bar::-webkit-scrollbar{display:none;}
+  .feat-tabs.bar .feat-tab[data-fk]{touch-action:pan-x;-webkit-touch-callout:none;}
+  .feat-tabs.bar .feat-tab.bar-fixed{position:sticky;z-index:3;background:var(--bg-elev);}
+  .feat-tabs.bar .feat-tab.bar-fixed:first-child{left:0;}
+  .feat-tabs.bar .feat-tab.bar-fixed:last-child{right:0;}
   .feat-tab.dragging-h{z-index:5;background:var(--accent-soft,rgba(255,200,60,.25)) !important;transition:none;box-shadow:0 4px 14px rgba(0,0,0,.55) !important;}
-  .feat-tab.dragging{width:42px;z-index:2;cursor:grabbing;transition:none;box-shadow:0 4px 14px rgba(0,0,0,.55);}
-  .feat-tabs.bar{left:0;right:0;bottom:0;top:auto;flex-direction:row;gap:0;justify-content:space-around;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:var(--bg-elev);border-top:1px solid var(--border);box-shadow:0 -2px 10px rgba(0,0,0,.35);}
-  .feat-tabs.bar .feat-tab{flex:1;width:auto;height:52px;flex-direction:column;gap:3px;border:none;border-radius:10px;background:none;box-shadow:none;font-size:calc(10.5px*var(--fs,1));font-weight:600;line-height:1.1;padding:2px 2px;text-align:center;}
+  .feat-tab.dragging{width:42px;z-index:2;cursor:grabbing;transition:none;box-shadow:inset 0 2px 0 var(--accent),0 4px 14px rgba(0,0,0,.55);}
+  .feat-tabs.bar{left:0;right:0;bottom:0;top:auto;flex-direction:row;gap:0;justify-content:flex-start;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));background:var(--bg-elev);border-top:1px solid var(--border);box-shadow:0 -2px 10px rgba(0,0,0,.35);}
+  .feat-tabs.bar .feat-tab{flex:1 0 58px;width:auto;height:52px;flex-direction:column;gap:3px;border:none;border-radius:10px;background:none;box-shadow:none;font-size:calc(10.5px*var(--fs,1));font-weight:600;line-height:1.1;padding:2px 2px;text-align:center;}
   .feat-tabs.bar .feat-tab:hover{width:auto;background:var(--accent-soft);}
   .feat-tabs.bar .feat-tab svg{width:22px;height:22px;}
   html.has-bar .undo-btn{bottom:calc(76px + env(safe-area-inset-bottom,0px));}
@@ -655,6 +660,7 @@
   .tut-ph{border:2px dashed var(--accent);color:var(--accent);border-radius:12px;padding:22px 14px;font-weight:600;animation:tutRing 1.4s ease-out infinite;}
   .tut-dim.pulse{background:rgba(0,0,0,.42);}
   @keyframes tutPulse{0%,100%{background:rgba(0,0,0,.42);}50%{background:rgba(0,0,0,.86);}}
+  .settings-btn.hl-ring{border:3px solid var(--accent) !important;animation:tutRing 1.4s ease-out infinite;}
   .tut-ring{position:fixed;border:3px solid var(--accent);border-radius:10px;pointer-events:none;animation:tutRing 1.4s ease-out infinite;}
   @keyframes tutRing{0%{box-shadow:0 0 0 0 rgba(240,200,74,.75);}100%{box-shadow:0 0 0 14px rgba(240,200,74,0);}}
   .tut-cardwrap{position:fixed;left:0;right:0;display:flex;justify-content:center;padding:0 12px;pointer-events:none;box-sizing:border-box;}
@@ -879,6 +885,8 @@
   "use strict";
   // edição do programa: "pro" (completa: recursos extras + até 5 QR Codes) ou "basic" (sem recursos extras, 1 QR Code)
   var EDITION = "pro";
+  var PREMIUM_KEYS = ["BARFACIL-PREMIUM-2026"]; // PROVISÓRIO: trocar pelas chaves reais
+  var PREMIUM_LS = "bf_premium_key";
   var MOBILE = false;
   var DEMO = false;
   var TUTORIAL = false;
@@ -886,7 +894,7 @@
   var NOAVU = false; // edição "sem avulsas": sem o botão/seção Avulsos e sem o cliente Avulso
   var SPLASH_IMG1 = "";
   var SPLASH_IMG2 = "";
-  var MAX_QR = EDITION==="basic" ? 1 : 5;
+  function maxQr(){ return EDITION==="basic" ? 1 : 5; }
   // ---------- splash de abertura (antes do login): estática, sem animação ----------
   (function(){
     try{
@@ -1354,6 +1362,9 @@
 
   var data = loadData();
   try{ bilharSyncComandas(); }catch(e){}
+  function premiumKeyNorm(k){ return String(k||"").replace(/\s+/g,"").toUpperCase(); }
+  function premiumKeyOk(k){ k = premiumKeyNorm(k); return !!k && PREMIUM_KEYS.some(function(x){ return premiumKeyNorm(x)===k; }); }
+  try{ if(EDITION==="basic" && premiumKeyOk(localStorage.getItem(PREMIUM_LS))) EDITION = "pro"; }catch(e){}
 
   // ---------- state ----------
   var state = {
@@ -1546,6 +1557,7 @@
 
   // ---------- icons ----------
   var ICONS = {
+    upgrade:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11l6-6 6 6"/><path d="M6 19l6-6 6 6"/></svg>',
     featDrinks:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 4h15L12 12.5Z"/><path d="M12 12.5V20"/><path d="M8 20h8"/><path d="M7.6 7.6h8.8"/><path d="M15.5 4.2l2.2-2.4"/></svg>',
     link:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="-6.2" y="-3.4" width="12.4" height="6.8" rx="3.4" transform="translate(8.6 15.4) rotate(-45)"/><rect x="-6.2" y="-3.4" width="12.4" height="6.8" rx="3.4" transform="translate(15.4 8.6) rotate(-45)"/></svg>',
     unlink:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="-5.2" y="-3.2" width="10.4" height="6.4" rx="3.2" transform="translate(7.4 16.6) rotate(-45)"/><rect x="-5.2" y="-3.2" width="10.4" height="6.4" rx="3.2" transform="translate(16.6 7.4) rotate(-45)"/><path d="M12 3.2v2.2M3.2 12h2.2M18.6 12h2.2M12 18.6v2.2" opacity="0"/></svg>',
@@ -2401,7 +2413,7 @@
       + list.map(function(x){
           var st = saleStatus(x), c = x.clientId ? findClient(x.clientId) : null, who = c ? c.name : "Avulso (sem cliente)";
           if(st.t!=="Pago") pend += x.qty*x.sellPrice;
-          return '<div class="hist-line"><span>'+escapeHtml(who)+' <span class="meta">×'+x.qty+' · '+fmtDateShort(x.date.slice(0,10))+' '+fmtTime(x.date)+'</span><br><span style="color:'+st.c+';font-size:calc(12px*var(--fs,1));font-weight:600;">'+st.t+'</span></span><b class="num">'+fmtBRL(x.qty*x.sellPrice)+'</b></div>';
+          return '<div class="hist-line"><span>'+escapeHtml(who)+' <span class="meta">×'+x.qty+' · '+fmtDateShort(x.date.slice(0,10))+' '+fmtTime(x.date)+'</span><br>'+(st.t!=="Pago" && c ? '<span data-action="open-client" data-id="'+c.id+'" role="button" title="Abrir a comanda de '+escapeHtml(c.name)+'" style="cursor:pointer;text-decoration:underline;color:'+st.c+';font-size:calc(12px*var(--fs,1));font-weight:600;">'+st.t+' ›</span>' : '<span style="color:'+st.c+';font-size:calc(12px*var(--fs,1));font-weight:600;">'+st.t+'</span>')+'</span><b class="num">'+fmtBRL(x.qty*x.sellPrice)+'</b></div>';
         }).join("")
       + '<div class="hist-line" style="border-top:1px solid var(--border);margin-top:8px;padding-top:12px;"><span><b>Total</b> <span class="meta">×'+qty+'</span></span><b class="num">'+fmtBRL(val)+'</b></div>'
       + (pend>0.004 ? '<div class="hist-line"><span style="color:#e0574a;">Ainda por pagar</span><b class="num" style="color:#e0574a;">'+fmtBRL(pend)+'</b></div>' : '')
@@ -3967,7 +3979,15 @@
     if(MOBILE){ /* celular não tem teclado físico: sem botão de atalhos */ }
     else if(isAdmin()) settingsBtns.splice(settingsBtns.length-2, 0, hotkeysBtn);
     else if(can("hkEmpty")) settingsBtns.splice(settingsBtns.length-1, 0, hotkeysBtn);
-    if(can("featEdit") && EDITION!=="basic") settingsBtns.splice(settingsBtns.length-1, 0, settingsBtn(ICONS.featSettings, "Recursos Personalizados", "open-features"));
+    if(can("featEdit")){
+      if(EDITION!=="basic"){
+        var featBtn = settingsBtn(ICONS.featSettings, "Recursos Personalizados", "open-features");
+        if(state.premiumHl) featBtn = featBtn.replace('class="settings-btn"','class="settings-btn hl-ring"');
+        settingsBtns.splice(settingsBtns.length-1, 0, featBtn);
+      } else if(isAdmin()){
+        settingsBtns.splice(settingsBtns.length-1, 0, settingsBtn(ICONS.upgrade, "Atualizar para premium", "open-upgrade"));
+      }
+    }
     html += '<div class="settings-list">' + settingsBtns.join("") + '</div>'
       + '<input type="file" id="import-file-input" accept="application/json,.json" style="display:none">'
       + '<p class="app-version">Usuário: '+(isAdmin()?'Admin':'Comum')+' · Cavi Pessoa v1.0.8</p>';
@@ -4084,8 +4104,18 @@
       body = '<h3>Excluir esta comanda avulsa?</h3>'
         + '<p style="font-size:calc(14px*var(--fs,1));margin:0 0 14px;">A comanda sai da tela, mas as vendas dela continuam nas listas Vendas e Por produto. Os lucros, as contas em aberto e o estoque não mudam. Para reverter os valores, use o botão de desfazer.</p>'
         + '<div class="actions"><button class="btn secondary" data-action="modal-cancel">Cancelar</button><button class="btn btn-confirm-enter" data-action="modal-confirm-delete-avulso-comanda">Excluir</button></div>';
+    } else if(m.type==="upgradePremium"){
+      body = '<h3>Atualizar para premium</h3>'
+        + '<p style="font-size:calc(13px*var(--fs,1));color:var(--text-dim);margin:0 0 10px;line-height:1.45;">Digite a chave premium que você recebeu para liberar todas as funções do app.</p>'
+        + '<div class="field"><label>Chave premium</label><input id="up-key" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" enterkeyhint="go" value="'+escapeHtml(m.key||"")+'"></div>'
+        + (m.error ? '<div class="err">'+escapeHtml(m.error)+'</div>' : '')
+        + '<div class="actions"><button class="btn secondary" data-action="modal-cancel">Cancelar</button><button class="btn btn-confirm-enter" data-action="modal-submit-upgrade">Ativar</button></div>';
+    } else if(m.type==="qrLimit"){
+      body = '<h3>Limite de QR Codes</h3>'
+        + '<p style="line-height:1.5;">Você cadastrou o último QR Code possível: o limite máximo é de '+maxQr()+'. Para cadastrar outro QR Code, é preciso excluir um QR Code existente primeiro.</p>'
+        + '<div class="actions"><button class="btn secondary" data-action="open-pix-config">Ver QR Codes</button><button class="btn btn-confirm-enter" data-action="modal-cancel">Entendi</button></div>';
     } else if(m.type==="pickQr"){
-      body = '<h3>Qual QR imprimir?</h3>'
+      body = '<h3>'+(m.pay ? 'Qual QR Code usar?' : 'Qual QR imprimir?')+'</h3>'
         + '<div style="display:flex;flex-direction:column;gap:8px;margin:8px 0 12px;">'
         + pixList().map(function(q){ return '<button class="btn" data-action="pick-qr" data-id="'+q.id+'">'+escapeHtml(pixFirstName(q))+'</button>'; }).join("")
         + '</div><div class="actions"><button class="btn secondary" data-action="modal-cancel">Cancelar</button></div>';
@@ -4100,7 +4130,7 @@
       body = '<h3>QR Code da Comanda</h3>'
         + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;">'
         + pxl.map(function(q){ return '<button type="button" class="chip" data-action="pix-sel" data-id="'+q.id+'" style="'+(q.id===pxSel?'border-color:var(--accent);color:var(--text);font-weight:600;':'')+'">'+escapeHtml(pixFirstName(q))+'</button>'; }).join("")
-        + (pxl.length<MAX_QR ? '<button type="button" class="chip" data-action="pix-sel" data-id="new" style="'+(pxSel==="new"?'border-color:var(--accent);color:var(--text);font-weight:600;':'')+'">+ Novo</button>' : '')
+        + (pxl.length<maxQr() ? '<button type="button" class="chip" data-action="pix-sel" data-id="new" style="'+(pxSel==="new"?'border-color:var(--accent);color:var(--text);font-weight:600;':'')+'">+ Novo</button>' : '')
         + '<button type="button" class="chip" data-action="pix-print-cfg" aria-label="Configurações de impressão" title="Configurações de impressão" style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:var(--accent);">'+ICONS.gears+'<span style="color:var(--text);font-size:calc(12px*var(--fs,1));">Config.</span></button>'
         + '</div>'
         + '<div class="field"><label>Chave Pix</label><input id="pix-key" value="'+escapeHtml(m.key!==undefined?m.key:(pxCv.key||""))+'" placeholder="Telefone, CPF, e-mail..." enterkeyhint="next"></div>'
@@ -4108,7 +4138,7 @@
         + '<div class="field"><label>Cidade <span style="color:var(--text-dim);">(sem acento)</span></label><input id="pix-city" value="'+escapeHtml(m.city!==undefined?m.city:(pxCv.city||""))+'" placeholder="Ex: Sao Paulo" enterkeyhint="go"></div>'
         + '<label style="display:flex;align-items:center;gap:8px;font-size:calc(14px*var(--fs,1));margin:6px 0 10px;"><input id="pix-enabled" type="checkbox" '+((m.enabled!==undefined?m.enabled:(pc.enabled!==false))?'checked':'')+' style="width:auto"> Imprimir o QR nas comandas</label>'
         + (m.error ? '<div class="err">'+escapeHtml(m.error)+'</div>' : '')
-        + '<div class="actions">'+(pxCur?'<button class="btn secondary" data-action="pix-del" data-id="'+pxCur.id+'">Excluir</button>':'<button class="btn secondary" data-action="modal-cancel">Cancelar</button>')+'<button class="btn btn-confirm-enter" data-action="modal-submit-pix">Salvar</button></div>'
+        + '<div class="actions">'+(pxCur?'<button class="btn secondary" data-action="pix-del" data-id="'+pxCur.id+'">Excluir QR Code</button>':'<button class="btn secondary" data-action="modal-cancel">Cancelar</button>')+'<button class="btn btn-confirm-enter" data-action="modal-submit-pix">Salvar</button></div>'
         + '<div style="display:flex;justify-content:center;margin:16px 0 4px;"><div style="background:#fff;padding:6px;border-radius:8px;line-height:0;">'+demoQr+'</div></div>';
     } else if(m.type==="printCfg"){
       var pcf = printCfg();
@@ -4149,6 +4179,9 @@
     } else if(m.type==="exitApp"){
       body = '<h3>Deseja sair do app?</h3>'
         + '<div class="actions"><button class="btn secondary" data-action="modal-cancel">Não</button><button class="btn btn-confirm-enter" data-action="exit-app-yes">Sim</button></div>';
+    } else if(m.type==="qrPay" && pixList().length>1 && !m.qrChosen){
+      body = '<h3>Qual QR Code usar?</h3>' + qrChooserHtml()
+        + '<div class="actions"><button class="btn secondary" data-action="modal-cancel">Cancelar</button></div>';
     } else if(m.type==="qrPay"){
       var qc = findClient(m.clientId), qse = qc && findSession(qc, m.sessionId);
       var qdev = qse ? r2(sessionAggregate(m.clientId, m.sessionId).gasto - (qse.abatido||0)) : 0;
@@ -4817,7 +4850,7 @@
       else if(action==="cx-toggle-histcard"){ state.caixaHistCollapsed = !state.caixaHistCollapsed; if(state.caixaHistCollapsed) state.caixaHistOpen = {}; render(); }
       else if(action==="caixa-toggle-hist"){ var chid = el.getAttribute("data-id"); state.caixaHistOpen = state.caixaHistOpen || {}; state.caixaHistOpen[chid] = !state.caixaHistOpen[chid]; render(); }
       else if(action==="caixa-print"){ var chh = caixaData().history.find(function(x){ return x.id===el.getAttribute("data-id"); }); if(chh) printHtmlReceipt(caixaReceipt(chh)); }
-      else if(action==="open-features"){ state.modal = {type:"featuresPicker"}; render(); }
+      else if(action==="open-features"){ state.premiumHl = false; state.modal = {type:"featuresPicker"}; render(); }
       else if(action==="toggle-feature"){ var fk = el.getAttribute("data-key"); data.features = data.features || {}; data.features[fk] = !data.features[fk]; saveData(); render(); }
       else if(action==="av-clear"){ state.avFrom=""; state.avTo=""; render(); }
       else if(action==="ph-clear"){ state.phItem=""; state.phFrom=""; state.phTo=""; render(); }
@@ -5074,7 +5107,10 @@
       else if(action==="qs-del"){ if(state.qs){ state.qs.lines.splice(parseInt(el.getAttribute("data-idx"),10),1); render(); } }
       else if(action==="qs-cancel"){ state.qs = null; state.screen = "sales"; render(); }
       else if(action==="qs-ok"){ qsOk(); }
-      else if(action==="qr-pick"){ state.qrSel = el.getAttribute("data-id"); render(); }
+      else if(action==="qr-pick"){ state.qrSel = el.getAttribute("data-id"); if(state.modal && state.modal.type==="qrPay") state.modal.qrChosen = true; else if(state.qs) state.qs.qrChosen = true; render(); }
+      else if(action==="qr-change"){ if(state.modal && state.modal.type==="qrPay") state.modal.qrChosen = false; else if(state.qs) state.qs.qrChosen = false; render(); }
+      else if(action==="open-upgrade"){ if(isAdmin()){ state.modal = {type:"upgradePremium"}; render(); focusModalInput(); } }
+      else if(action==="modal-submit-upgrade"){ submitUpgrade(); }
       else if(action==="open-qr-comanda"){ openQrComanda(el.getAttribute("data-client-id"), el.getAttribute("data-session-id")); }
       else if(action==="modal-qrpay-ok"){ submitQrPay(); }
       else if(action==="modal-confirm-undo-pay"){ var up = state.modal; state.modal = null; if(up) undoPayment(up.clientId, up.sessionId, up.idx); }
@@ -7773,7 +7809,7 @@ var qrcode = function() {
     var d = data.pix;
     if(!d) return [];
     if(!d.qrs){ d.qrs = d.key ? [{id:uid(), key:d.key, name:d.name, city:d.city}] : []; }
-    return d.qrs.length>MAX_QR ? d.qrs.slice(0,MAX_QR) : d.qrs;
+    return d.qrs.length>maxQr() ? d.qrs.slice(0,maxQr()) : d.qrs;
   }
   function pixFirstName(q){ return (String(q.name||"").trim().split(/\s+/)[0]) || "QR"; }
   function pixConfig(){
@@ -10530,6 +10566,26 @@ var qrcode = function() {
     focusModalInput();
   }
 
+  function submitUpgrade(){
+    var m = state.modal; if(!m || m.type!=="upgradePremium" || !isAdmin()) return;
+    var inp = document.getElementById("up-key"), k = inp ? inp.value : "";
+    if(!premiumKeyOk(k)){ state.modal = {type:"upgradePremium", key:k, error:"Chave inválida. Confira se digitou exatamente como recebeu."}; render(); return; }
+    try{ localStorage.setItem(PREMIUM_LS, premiumKeyNorm(k)); }catch(e){}
+    EDITION = "pro"; state.modal = null; state.premiumHl = true; state.screen = "settings";
+    render(); showPremiumThanks();
+  }
+  function showPremiumThanks(){
+    var o = document.createElement("div");
+    o.id = "premium-thanks";
+    o.style.cssText = "position:fixed;inset:0;z-index:200000;background:#0B3D24;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;box-sizing:border-box;text-align:center;overflow:auto;";
+    o.innerHTML = '<div style="font-size:clamp(22px,6vw,32px);font-weight:700;color:#F1FCF3;">Parabéns!</div>'
+      + '<div style="max-width:420px;line-height:1.55;font-size:clamp(15px,4.2vw,18px);color:#D6EFDD;">Agora você pode usufruir dos recursos premium. Para ativá-los, clique no botão <b>Recursos Personalizados</b>. Você também pode cadastrar mais QR Codes e escolher qual usar na hora de vender.<br><br>Obrigado pela confiança! 😊</div>'
+      + '<svg width="84" height="84" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="44" fill="#F2C744"/><path d="M28 50l14 14 27-30" fill="none" stroke="#0B3D24" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      + '<div style="font-family:\'Righteous\',sans-serif;font-weight:400;font-size:clamp(40px,12vw,64px);line-height:1;color:#F1FCF3;">Bar<span style="color:#F2C744;">Fácil</span></div>'
+      + '<button type="button" id="premium-thanks-ok" style="margin-top:8px;padding:12px 28px;border:none;border-radius:10px;background:#F2C744;color:#1A140C;font-weight:700;font-size:16px;cursor:pointer;">Continuar</button>';
+    document.body.appendChild(o);
+    document.getElementById("premium-thanks-ok").onclick = function(){ o.remove(); render(); };
+  }
   function submitPixConfig(){
     var m = state.modal;
     if(!m || m.type!=="pixConfig" || !isAdmin()) return;
@@ -10548,12 +10604,13 @@ var qrcode = function() {
     var qrs = pixList(), selId = m.sel!==undefined ? m.sel : (qrs[0] ? qrs[0].id : "new");
     var ex = qrs.find(function(q){ return q.id===selId; });
     if(ex){ ex.key = key; ex.name = name; ex.city = city; }
-    else { if(qrs.length>=MAX_QR) return fail("Máximo de "+MAX_QR+" QR Code"+(MAX_QR>1?"s":"")+"."); qrs.push({id:uid(), key:key, name:name, city:city}); }
+    else { if(qrs.length>=maxQr()) return fail("Máximo de "+maxQr()+" QR Code"+(maxQr()>1?"s":"")+"."); qrs.push({id:uid(), key:key, name:name, city:city}); }
     data.pix = {enabled:enabled, qrs:qrs};
     saveData();
-    state.modal = null;
+    var hitMax = !ex && maxQr()>1 && qrs.length>=maxQr();
+    state.modal = hitMax ? {type:"qrLimit"} : null;
     render();
-    showToast("QR Pix salvo (recebedor: "+name+").");
+    if(!hitMax) showToast("QR Pix salvo (recebedor: "+name+").");
   }
 
   function submitComandaSaleQty(){
@@ -11274,12 +11331,15 @@ var qrcode = function() {
     var l = pixList(); if(!l.length) return null;
     return l.find(function(q){ return q.id===state.qrSel; }) || l[0];
   }
+  function qrChooserHtml(){
+    return '<div style="display:flex;flex-direction:column;gap:8px;margin:8px 0 12px;">'
+      + pixList().map(function(q){ return '<button type="button" class="btn" data-action="qr-pick" data-id="'+q.id+'">'+escapeHtml(pixFirstName(q))+'</button>'; }).join("") + '</div>';
+  }
   function qrPayHtml(amount){
     var cfg = qrPixCfg();
     if(!cfg) return '<div class="err" style="text-align:center;margin:10px 0;">Cadastre a chave Pix em Configurações → QR Code da Comanda para gerar o QR Code.</div>';
     var l = pixList();
-    var chips = l.length>1 ? '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:6px;">'
-      + l.map(function(q){ return '<button type="button" class="chip" data-action="qr-pick" data-id="'+q.id+'" style="'+(q.id===cfg.id?'border-color:var(--accent);color:var(--accent);':'')+'">'+escapeHtml(pixFirstName(q))+'</button>'; }).join("") + '</div>' : '';
+    var chips = l.length>1 ? '<div style="display:flex;justify-content:center;margin-bottom:6px;"><button type="button" class="chip" data-action="qr-change" style="border-color:var(--accent);color:var(--accent);">QR de '+escapeHtml(pixFirstName(cfg))+' · trocar</button></div>' : '';
     var svg = "";
     if(amount>0.004){ try{ svg = qrSvg(pixPayload(cfg, amount), 240, "px"); }catch(e){} }
     return chips + '<div class="qr-box"><div id="qr-img">'+(svg || '<span style="display:block;padding:24px;color:#555;font-size:13px;line-height:1.3;">Informe um valor</span>')+'</div></div>'
@@ -11332,7 +11392,7 @@ var qrcode = function() {
           + '<button type="button" class="csq-btn del" data-action="qs-del" data-idx="'+i+'" aria-label="Remover">−</button></span></div>';
       }).join("");
       html += '<div class="qs-total"><span>Total</span><span class="num">'+fmtBRL(total)+'</span></div>';
-      html += qrPayHtml(total);
+      html += (pixList().length>1 && !q.qrChosen) ? '<h3 style="margin:12px 0 0;text-align:center;font-size:calc(15px*var(--fs,1));">Qual QR Code usar?</h3>'+qrChooserHtml() : qrPayHtml(total);
     } else {
       html += '<div class="empty" style="margin:8px 0;">Adicione itens para gerar o QR Code.</div>';
     }
@@ -11377,7 +11437,7 @@ var qrcode = function() {
     if(!session) return;
     var devido = r2(sessionAggregate(clientId, sessionId).gasto - (session.abatido||0));
     if(devido<=0.001) return;
-    state.modal = {type:"qrPay", clientId:clientId, sessionId:sessionId, amount:devido};
+    state.modal = {type:"qrPay", clientId:clientId, sessionId:sessionId, amount:devido, qrChosen:false};
     render();
   }
   function submitQrPay(){
@@ -11873,6 +11933,8 @@ var qrcode = function() {
     }
     document.addEventListener("pointerup", end, true);
     document.addEventListener("pointercancel", end, true);
+    // enquanto arrasta uma aba (depois do toque longo), a barra não pode rolar junto
+    document.addEventListener("touchmove", function(e){ if(D && D.active && e.cancelable) e.preventDefault(); }, {capture:true, passive:false});
     document.addEventListener("click", function(e){ if(suppress){ e.stopPropagation(); e.preventDefault(); } }, true);
     document.addEventListener("contextmenu", function(e){ if(e.target.closest && e.target.closest(".feat-tabs.bar")) e.preventDefault(); }, true);
   })();
