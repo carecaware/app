@@ -1489,7 +1489,7 @@
       + '<button type="button" id="lw-go" class="lw-go" disabled>Ativar</button>'
       + '<div class="lw-msg" id="lw-msg"></div>'
       + '<button type="button" id="lw-rel" class="lw-rel" style="display:none">Usar neste aparelho (desativar o antigo)</button>'
-      + (LIC_BYPASS_BTN ? '<button type="button" id="lw-bypass" class="lw-rel" style="opacity:.7;border-style:dashed">Pular (provisório)</button>' : '') + '</div>';
+      + (LIC_BYPASS_BTN ? '<button type="button" id="lw-bypass" class="lw-rel" style="opacity:.7;border-style:dashed">Pular (provisório)</button><button type="button" id="lw-vip" class="lw-rel" style="opacity:.7;border-style:dashed">Liberar Premium (provisório)</button>' : '') + '</div>';
   }
   function licShowWall(){
     var w = document.getElementById("lic-wall");
@@ -1512,6 +1512,11 @@
       }).catch(function(){ msg.className = "lw-msg err"; msg.textContent = "Não foi possível conectar. Verifique a internet e tente de novo."; sync(); });
     }
     go.addEventListener("click", function(){ submit(); });
+    var vip = w.querySelector("#lw-vip"); if(vip) vip.addEventListener("click", function(){
+      // PROVISÓRIO: libera o premium sem prazo neste aparelho
+      lsSet(LIC_STATE_LS, JSON.stringify({tier:"premium", trial:false, exp:0, since:Date.now(), down:0, t:Date.now(), dev:true}));
+      lsSet(PREMIUM_LS, "1"); licApply(); w.remove(); render();
+    });
     var byp = w.querySelector("#lw-bypass"); if(byp) byp.addEventListener("click", function(){ licBypassed = true; w.remove(); render(); });
     inp.addEventListener("keydown", function(e){ if(e.key==="Enter") submit(); });
     rel.addEventListener("click", function(){ if(pend && window.confirm("O aparelho antigo deixará de funcionar com esta chave. Continuar?")) submit("release"); });
