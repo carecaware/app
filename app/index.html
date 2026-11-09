@@ -719,6 +719,28 @@
   .settings-btn svg{color:var(--accent);flex-shrink:0;}
 
   .app-version{color:var(--text-dim);font-size:calc(11px*var(--fs,1));text-align:right;margin-top:8px;opacity:.7;}
+  .app-foot{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:8px;}
+  .app-foot p{margin:0;}
+  .lic-status{color:var(--text-dim);font-size:calc(11px*var(--fs,1));opacity:.85;font-weight:600;}
+  .settings-btn.settings-btn-red{background:#B3261E;border-color:#8E1B15;color:#fff;}
+  .settings-btn.settings-btn-red svg{color:#fff;}
+  .settings-btn.settings-btn-red:hover{background:#C9322A;}
+  #lic-wall,#lic-thanks{position:fixed;inset:0;z-index:300000;background:#0B3D24;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;overflow:auto;}
+  #lic-wall .lw-box,#lic-thanks .lw-box{width:100%;max-width:440px;text-align:center;color:#D6EFDD;display:flex;flex-direction:column;gap:14px;}
+  .lw-logo{font-family:'Righteous',sans-serif;font-size:clamp(38px,11vw,58px);line-height:1;color:#F1FCF3;}
+  .lw-logo span{color:#F2C744;}
+  .lw-box h2{margin:6px 0 0;font-size:clamp(20px,5.4vw,26px);color:#F1FCF3;}
+  .lw-box p{margin:0;line-height:1.55;font-size:clamp(14px,3.9vw,16px);}
+  .lw-box a{color:#F2C744;font-weight:700;text-decoration:underline;}
+  .lw-box label{text-align:left;font-size:14px;font-weight:700;color:#F1FCF3;margin-top:8px;}
+  .lw-box input{width:100%;box-sizing:border-box;padding:13px 14px;font-size:16px;letter-spacing:1px;border-radius:10px;border:1px solid #2F7A52;background:#08301D;color:#F1FCF3;text-transform:uppercase;}
+  .lw-box input:focus{outline:none;border-color:#F2C744;}
+  .lw-go{width:100%;padding:13px;border:none;border-radius:10px;font-weight:700;font-size:16px;background:#4A6256;color:#93A89B;cursor:default;}
+  .lw-go:not(:disabled),.lw-go.on{background:#F2C744;color:#1A140C;cursor:pointer;box-shadow:0 0 0 3px rgba(242,199,68,.28);}
+  .lw-rel{width:100%;padding:11px;border:1px solid #2F7A52;border-radius:10px;background:transparent;color:#D6EFDD;font-weight:600;cursor:pointer;}
+  .lw-msg{min-height:18px;font-size:13px;}
+  .lw-msg.err{color:#FFB4A8;}
+
 
 
   .theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px;}
@@ -886,6 +908,8 @@
   "use strict";
   // edição do programa: "pro" (completa: recursos extras + até 5 QR Codes) ou "basic" (sem recursos extras, 1 QR Code)
   var EDITION = "pro";
+  var BUILD_EDITION = EDITION; // edição de fábrica (o teste de 7 dias usa esta)
+  var ENFORCE = false; // true nas edições vendidas: teste de 7 dias + assinatura (demo/tutorial/splash não cobram)
   // Premium: com licença (Windows/celular/web) a chave é validada no Supabase (função redeem-premium) e
   // o estado vem da própria licença. Só em cópias SEM licença (HTML de teste) vale a chave de teste abaixo.
   var PREMIUM_DEV_KEYS = ["BARFACIL-PREMIUM-2026"];
@@ -1368,7 +1392,154 @@
   function premiumKeyNorm(k){ return String(k||"").replace(/[\s-]+/g,"").toUpperCase(); }
   function premiumKeyDev(k){ k = premiumKeyNorm(k); return !!k && PREMIUM_DEV_KEYS.some(function(x){ return premiumKeyNorm(x)===k; }); }
   function premiumKeyFmt(k){ var c = premiumKeyNorm(k), o = []; for(var i=0;i<c.length;i+=4) o.push(c.slice(i,i+4)); return o.join("-"); }
-  try{ if(EDITION==="basic" && localStorage.getItem(PREMIUM_LS)==="1") EDITION = "pro"; }catch(e){}
+  // ================= ASSINATURA / PERÍODO DE TESTE =================
+  // - Sem chave: 7 dias de teste em qualquer aparelho (data de início guardada aqui, relógio só avança).
+  // - Chave básica/premium (Supabase): o servidor diz o tipo; a chave de 7 dias (trial) expira sozinha.
+  // - Limite conhecido: limpar os dados do app/reinstalar reinicia o teste local; só a chave de 7 dias do servidor é à prova disso.
+  var LIC_STATE_LS = "bf_lic_state", LIC_T0_LS = "bf_trial0", LIC_SEEN_LS = "bf_seen", TRIAL_MS = 7*86400000;
+  var LIC_DEV_KEYS = {"BARFACIL-BASICA-2026":"basic", "BARFACIL-PREMIUM-2026":"premium"};
+  var WA_PHONE = "(11) 93060-7881", WA_LINK = "https://wa.me/5511930607881";
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k, v); }catch(e){} }
+  function licNow(){ var n = Date.now(), s = parseInt(lsGet(LIC_SEEN_LS)||"0",10)||0; if(n<s) return s; lsSet(LIC_SEEN_LS, String(n)); return n; }
+  function licState(){ try{ var j = JSON.parse(lsGet(LIC_STATE_LS)||"null"); return (j && typeof j==="object") ? j : null; }catch(e){ return null; } }
+  // devolve {mode:"trial"|"basic"|"premium"|"expired", tier, left (ms do teste), st, down}
+  function licInfo(){
+    var st = licState(), now = licNow();
+    if(st){
+      if(st.exp && now>st.exp) return {mode:"expired", tier:"basic", st:st};
+      var down = st.down||0, tier = st.tier==="premium" ? "premium" : "basic";
+      if(tier==="premium" && !st.trial && down && now>=down) tier = "basic";
+      return {mode: st.trial ? "trial" : tier, tier:tier, st:st, down: (tier==="premium"?down:0), left: st.trial&&st.exp ? st.exp-now : 0};
+    }
+    var t0 = parseInt(lsGet(LIC_T0_LS)||"0",10)||0;
+    if(!t0 || t0>now){ t0 = now; lsSet(LIC_T0_LS, String(t0)); }
+    var left = t0 + TRIAL_MS - now;
+    if(left>0) return {mode:"trial", tier: BUILD_EDITION==="basic" ? "basic" : "premium", left:left, st:null};
+    return {mode:"expired", tier:"basic", st:null};
+  }
+  function licApply(){
+    if(!ENFORCE){ try{ if(EDITION==="basic" && lsGet(PREMIUM_LS)==="1") EDITION = "pro"; }catch(e){} return; }
+    var inf = licInfo();
+    if(inf.mode==="expired"){ EDITION = "basic"; return; }
+    var prem = inf.tier==="premium";
+    // chave premium resgatada sobre uma assinatura básica (ou durante o teste) libera o premium
+    if(!prem && lsGet(PREMIUM_LS)==="1" && !(inf.st && inf.st.tier==="premium")) prem = true;
+    if(inf.st && inf.st.tier==="premium" && inf.tier==="basic"){ try{ localStorage.removeItem(PREMIUM_LS); }catch(e){} }
+    EDITION = prem ? "pro" : "basic";
+  }
+  function licStatusText(){
+    var inf = licInfo();
+    if(inf.mode==="trial") return "Assinatura: Período de Teste";
+    if(inf.mode==="premium") return "Assinatura VIP";
+    if(inf.mode==="basic") return (EDITION!=="basic" ? "Assinatura VIP" : "Assinatura Básica");
+    return "Assinatura: Período de Teste";
+  }
+  function licReason(r){
+    return ({not_found:"Chave não encontrada. Confira se digitou exatamente como recebeu.", revoked:"Esta chave foi desativada. Fale com o suporte.", expired:"Esta chave expirou.",
+      wrong_platform:"Esta chave não é válida para esta versão do app.", limit_reached:"Esta chave já está ativa em outro aparelho.", release_limit:"Limite de trocas de aparelho atingido neste ano. Fale com o suporte.",
+      bad_request:"Digite a chave completa."})[r] || "Servidor indisponível no momento. Tente novamente em instantes.";
+  }
+  // ativa uma chave de assinatura: com licença do Supabase (window.bfLic) ou, em HTML de teste, com as chaves de teste
+  function licActivate(key, action){
+    key = String(key||"").trim().toUpperCase();
+    if(window.bfLic && window.bfLic.activate) return window.bfLic.activate(key, action);
+    var t = null;
+    for(var k in LIC_DEV_KEYS){ if(premiumKeyNorm(k)===premiumKeyNorm(key)) t = LIC_DEV_KEYS[k]; }
+    if(!t) return Promise.resolve({valid:false, reason:"not_found"});
+    lsSet(LIC_STATE_LS, JSON.stringify({tier:t, trial:false, exp:0, since:Date.now(), down:0, t:Date.now(), dev:true}));
+    if(t==="premium") lsSet(PREMIUM_LS, "1"); else { try{ localStorage.removeItem(PREMIUM_LS); }catch(e){} }
+    return Promise.resolve({valid:true, tier:t});
+  }
+  // próximo dia de faturamento (mesmo dia do mês em que o premium começou), a partir de amanhã
+  function licBillingStart(since){
+    var d0 = new Date(since||Date.now()), day = d0.getDate(), n = new Date(), y = n.getFullYear(), m = n.getMonth();
+    for(var i=0;i<14;i++){
+      var dim = new Date(y, m+1, 0).getDate(), st = new Date(y, m, Math.min(day, dim)).getTime();
+      if(st > Date.now()) return st;
+      m++; if(m>11){ m=0; y++; }
+    }
+    return Date.now();
+  }
+  function licFmtDate(ms){ var d = new Date(ms); return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear(); }
+  function licDowngradeSince(){ var inf = licInfo(); return (inf.st && inf.st.since) || parseInt(lsGet("bf_prem_since")||"0",10) || Date.now(); }
+  function licDoDowngrade(){
+    var done = function(downMs){
+      var st = licState();
+      if(st){ st.down = downMs; lsSet(LIC_STATE_LS, JSON.stringify(st)); }
+      else lsSet(LIC_STATE_LS, JSON.stringify({tier:"premium", trial:false, exp:0, since:licDowngradeSince(), down:downMs, t:Date.now(), dev:true}));
+      state.modal = null; licApply(); render();
+      showToast("Pronto! Você usa o premium até "+licFmtDate(downMs)+" e depois o app volta para a versão básica.");
+    };
+    var fail = function(msg){ state.modal = {type:"downgradePw", error:msg}; render(); focusModalInput(); };
+    var st0 = licState();
+    if(window.bfLic && window.bfLic.scheduleDowngrade && !(st0 && st0.dev)){
+      window.bfLic.scheduleDowngrade().then(function(j){
+        if(j && j.ok) return done(j.downgrade_at);
+        fail(({not_premium:"Sua assinatura não é premium.", trial:"Você está no período de teste.", device_not_activated:"Este aparelho ainda não está ativado. Feche e abra o app e tente de novo."})[j && j.reason] || "Servidor indisponível no momento. Tente de novo em instantes.");
+      }).catch(function(){ fail("Não foi possível conectar. Verifique a internet e tente de novo."); });
+    } else done(licBillingStart(licDowngradeSince()));
+  }
+  function licWallHtml(){
+    return '<div class="lw-box"><div class="lw-logo">Bar<span>Fácil</span></div>'
+      + '<h2>Seu período de teste acabou.</h2>'
+      + '<p>Se quiser adquirir uma assinatura, entre em contato com seu representante de vendas ou acione nossa central - <a href="'+WA_LINK+'" target="_blank" rel="noopener">'+WA_PHONE+'</a> (Whatsapp).</p>'
+      + '<label for="lw-key">Já tenho uma chave de assinatura.</label>'
+      + '<input id="lw-key" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" enterkeyhint="go">'
+      + '<button type="button" id="lw-go" class="lw-go" disabled>Ativar</button>'
+      + '<div class="lw-msg" id="lw-msg"></div>'
+      + '<button type="button" id="lw-rel" class="lw-rel" style="display:none">Usar neste aparelho (desativar o antigo)</button></div>';
+  }
+  function licShowWall(){
+    var w = document.getElementById("lic-wall");
+    if(w) return;
+    w = document.createElement("div"); w.id = "lic-wall"; w.innerHTML = licWallHtml();
+    document.body.appendChild(w);
+    var inp = w.querySelector("#lw-key"), go = w.querySelector("#lw-go"), msg = w.querySelector("#lw-msg"), rel = w.querySelector("#lw-rel"), pend = null;
+    function sync(){ go.disabled = !inp.value.trim(); }
+    inp.addEventListener("input", function(){
+      var v = premiumKeyFmt(inp.value); if(window.bfLic===undefined && /^BARFACIL/i.test(inp.value.trim())) v = inp.value.toUpperCase();
+      if(v!==inp.value) inp.value = v; sync();
+    });
+    function submit(action){
+      var k = inp.value.trim(); if(!k) return;
+      go.disabled = true; msg.className = "lw-msg"; msg.textContent = "Verificando…";
+      licActivate(k, action).then(function(res){
+        if(res && res.valid){ pend = null; licAfterActivate(res, w); return; }
+        msg.className = "lw-msg err"; msg.textContent = licReason(res && res.reason); sync();
+        pend = (res && res.reason==="limit_reached" && res.can_release) ? k : null; rel.style.display = pend ? "block" : "none";
+      }).catch(function(){ msg.className = "lw-msg err"; msg.textContent = "Não foi possível conectar. Verifique a internet e tente de novo."; sync(); });
+    }
+    go.addEventListener("click", function(){ submit(); });
+    inp.addEventListener("keydown", function(e){ if(e.key==="Enter") submit(); });
+    rel.addEventListener("click", function(){ if(pend && window.confirm("O aparelho antigo deixará de funcionar com esta chave. Continuar?")) submit("release"); });
+    setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 50);
+  }
+  function licAfterActivate(res, wall){
+    licApply(); if(wall) wall.remove();
+    try{ state.modal = null; }catch(e){}
+    var trial = !!(res && res.trial);
+    render();
+    if(trial){ showToast("Chave de teste ativada."); return; }
+    licShowThanks();
+  }
+  function licShowThanks(){
+    var o = document.createElement("div"); o.id = "lic-thanks";
+    o.innerHTML = '<div class="lw-box"><div class="lw-logo">Bar<span>Fácil</span></div>'
+      + '<h2>Obrigado por adquirir a assinatura!</h2><p>Desejamos tudo de bom nos negócios!</p>'
+      + '<button type="button" id="lic-thanks-ok" class="lw-go on">Continuar</button></div>';
+    document.body.appendChild(o);
+    document.getElementById("lic-thanks-ok").onclick = function(){ o.remove(); render(); };
+  }
+  // confere o estado: mostra a tela de teste encerrado sempre que estiver vencido e sem assinatura
+  function licCheck(){
+    if(!ENFORCE) return;
+    var inf = licInfo();
+    if(inf.mode==="expired"){ licApply(); licShowWall(); }
+    else { var w = document.getElementById("lic-wall"); if(w) w.remove(); }
+  }
+  licApply();
+  window.addEventListener("bf-lic-changed", function(){ licApply(); licCheck(); try{ render(); }catch(e){} });
 
   // ---------- state ----------
   var state = {
@@ -1562,6 +1733,7 @@
   // ---------- icons ----------
   var ICONS = {
     upgrade:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11l6-6 6 6"/><path d="M6 19l6-6 6 6"/></svg>',
+    downgrade:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5l6 6 6-6"/><path d="M6 13l6 6 6-6"/></svg>',
     featDrinks:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 4h15L12 12.5Z"/><path d="M12 12.5V20"/><path d="M8 20h8"/><path d="M7.6 7.6h8.8"/><path d="M15.5 4.2l2.2-2.4"/></svg>',
     link:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="-6.2" y="-3.4" width="12.4" height="6.8" rx="3.4" transform="translate(8.6 15.4) rotate(-45)"/><rect x="-6.2" y="-3.4" width="12.4" height="6.8" rx="3.4" transform="translate(15.4 8.6) rotate(-45)"/></svg>',
     unlink:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="-5.2" y="-3.2" width="10.4" height="6.4" rx="3.2" transform="translate(7.4 16.6) rotate(-45)"/><rect x="-5.2" y="-3.2" width="10.4" height="6.4" rx="3.2" transform="translate(16.6 7.4) rotate(-45)"/><path d="M12 3.2v2.2M3.2 12h2.2M18.6 12h2.2M12 18.6v2.2" opacity="0"/></svg>',
@@ -3994,7 +4166,7 @@
       var spTog = (SPLASH && data.randomizeBtn) ? '<button class="settings-btn sp-toggle'+(data.splashAlways?' on':'')+'" data-action="toggle-splash-always" title="Mostrar as telas iniciais sempre que iniciar o tutorial: '+(data.splashAlways?'ON':'OFF')+'" aria-label="Mostrar as telas iniciais sempre que iniciar o tutorial">'+ICONS.splashPic+(MOBILE ? '' : '<span>'+(data.splashAlways?'ON':'OFF')+'</span>')+'</button>' : '';
       var tutTog = (TUTORIAL && data.randomizeBtn) ? '<button class="settings-btn sp-toggle'+(data.tutBtnAlways?' on':'')+'" data-action="toggle-tut-always" title="Botão Começar tutorial sempre visível: '+(data.tutBtnAlways?'ON':'OFF')+'" aria-label="Botão Começar tutorial sempre visível">'+ICONS.tutorial+(MOBILE ? '' : '<span>'+(data.tutBtnAlways?'ON':'OFF')+'</span>')+'</button>' : '';
       spTog += tutTog;
-      settingsBtns.push('<div class="settings-row'+(spTog && spTog.length>tutTog.length && tutTog ? ' tog2' : '')+'"'+(spTog ? ' style="grid-template-columns:1fr 1fr'+(tutTog ? ' auto' : '')+((spTog.length>tutTog.length) ? ' auto' : '')+';"' : '')+'>'+settingsBtn(ICONS.gears, MOBILE ? "Config. Avançadas" : "Configurações Avançadas", "open-adv")+(data.randomizeBtn ? settingsBtn(ICONS.sparkRand, ((TUTORIAL||SPLASH) ? "Randomizar" : "Randomize"), "open-randomize").replace('class="settings-btn"','class="settings-btn" data-secret="1"') : settingsBtn(ICONS.x, "Zerar Dados", "open-reset-data").replace('class="settings-btn"','class="settings-btn" data-secret="1"'))+spTog+'</div>');
+      settingsBtns.push('<div class="settings-row'+(spTog && spTog.length>tutTog.length && tutTog ? ' tog2' : '')+'"'+(spTog ? ' style="grid-template-columns:1fr 1fr'+(tutTog ? ' auto' : '')+((spTog.length>tutTog.length) ? ' auto' : '')+';"' : '')+'>'+settingsBtn(ICONS.gears, MOBILE ? "Config. Avançadas" : "Configurações Avançadas", "open-adv")+(data.randomizeBtn ? settingsBtn(ICONS.sparkRand, ((TUTORIAL||SPLASH) ? "Randomizar" : "Randomize"), "open-randomize").replace('class="settings-btn"','class="settings-btn" data-secret="1"') : settingsBtn(ICONS.x, "Zerar Dados", "open-reset-data").replace('class="settings-btn"','class="settings-btn settings-btn-red" data-secret="1"'))+spTog+'</div>');
     }
     // "Atalhos de Teclado" fica logo acima de "QR Code da Comanda" (admin);
     // para o usuário comum continua sendo o penúltimo botão
@@ -4011,10 +4183,19 @@
         settingsBtns.splice(settingsBtns.length-1, 0, settingsBtn(ICONS.upgrade, "Atualizar para premium", "open-upgrade"));
       }
     }
+    if(ENFORCE && isAdmin()){
+      var li = licInfo();
+      if(li.mode==="premium" && !li.down) settingsBtns.splice(settingsBtns.length-1, 0, settingsBtn(ICONS.downgrade, "Voltar para versão básica", "open-downgrade"));
+    }
     html += '<div class="settings-list">' + settingsBtns.join("") + '</div>'
       + '<input type="file" id="import-file-input" accept="application/json,.json" style="display:none">'
-      + '<p class="app-version">Usuário: '+(isAdmin()?'Admin':'Comum')+' · Cavi Pessoa v1.0.8</p>';
+      + '<div class="app-foot">'+(ENFORCE ? '<span class="lic-status" id="lic-status">'+licStatusText()+licDownNote()+'</span>' : '<span></span>')+'<p class="app-version">Usuário: '+(isAdmin()?'Admin':'Comum')+' · Cavi Pessoa v1.0.8</p></div>';
     return html;
+  }
+
+  function licDownNote(){
+    var li = licInfo();
+    return (li.mode==="premium" && li.down) ? ' · volta à básica em '+licFmtDate(li.down) : '';
   }
 
   function settingsBtn(icon, label, action){
@@ -4133,6 +4314,17 @@
         + '<div class="field"><label>Chave premium</label><input id="up-key" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" enterkeyhint="go" value="'+escapeHtml(m.key||"")+'"></div>'
         + (m.error ? '<div class="err">'+escapeHtml(m.error)+'</div>' : '')
         + '<div class="actions"><button class="btn secondary" data-action="modal-cancel">Cancelar</button><button class="btn btn-confirm-enter" data-action="modal-submit-upgrade">Ativar</button></div>';
+    } else if(m.type==="downgradeInfo"){
+      var dn = licBillingStart(licDowngradeSince()), dd = new Date(licDowngradeSince()).getDate();
+      body = '<h3>Voltar para a versão básica?</h3>'
+        + '<p style="line-height:1.5;">Você pode continuar usando a versão premium até a data de faturamento (<b>dia '+dd+'</b> de cada mês — próxima em <b>'+licFmtDate(dn)+'</b>). Depois disso, o app será revertido para a versão básica: os recursos personalizados e os QR Codes extras ficam bloqueados (seus dados são mantidos).</p>'
+        + '<div class="actions"><button class="btn secondary" data-action="modal-cancel">Cancelar</button><button class="btn btn-confirm-enter" data-action="modal-downgrade-ok">Confirmar</button></div>';
+    } else if(m.type==="downgradePw"){
+      body = '<h3>Confirme com a senha</h3>'
+        + '<p>Digite a senha atual para confirmar a volta para a versão básica.</p>'
+        + '<div class="field"><input type="password" id="modal-remove-password-input" placeholder="Senha atual" autofocus></div>'
+        + (m.error ? '<div class="err">'+escapeHtml(m.error)+'</div>' : '')
+        + '<div class="actions"><button class="btn secondary" data-action="modal-cancel">Cancelar</button><button class="btn btn-confirm-enter" data-action="modal-downgrade-pw">Confirmar</button></div>';
     } else if(m.type==="qrLimit"){
       body = '<h3>Limite de QR Codes</h3>'
         + '<p style="line-height:1.5;">Você cadastrou o último QR Code possível: o limite máximo é de '+maxQr()+'. Para cadastrar outro QR Code, é preciso excluir um QR Code existente primeiro.</p>'
@@ -5134,6 +5326,13 @@
       else if(action==="qr-change"){ if(state.modal && state.modal.type==="qrPay") state.modal.qrChosen = false; else if(state.qs) state.qs.qrChosen = false; render(); }
       else if(action==="open-upgrade"){ if(isAdmin()){ state.modal = {type:"upgradePremium"}; render(); focusModalInput(); } }
       else if(action==="modal-submit-upgrade"){ submitUpgrade(); }
+      else if(action==="open-downgrade"){ if(isAdmin()){ state.modal = {type:"downgradeInfo"}; render(); } }
+      else if(action==="modal-downgrade-ok"){ state.modal = {type:"downgradePw", error:null}; render(); focusModalInput(); }
+      else if(action==="modal-downgrade-pw"){
+        var dpi = document.getElementById("modal-remove-password-input");
+        if((dpi ? dpi.value : "") !== pwFor(state.role)){ state.modal.error = "Senha incorreta."; render(); focusModalInput(); }
+        else licDoDowngrade();
+      }
       else if(action==="open-qr-comanda"){ openQrComanda(el.getAttribute("data-client-id"), el.getAttribute("data-session-id")); }
       else if(action==="modal-qrpay-ok"){ submitQrPay(); }
       else if(action==="modal-confirm-undo-pay"){ var up = state.modal; state.modal = null; if(up) undoPayment(up.clientId, up.sessionId, up.idx); }
@@ -10591,6 +10790,11 @@ var qrcode = function() {
 
   function premiumDone(){
     try{ localStorage.setItem(PREMIUM_LS, "1"); }catch(e){}
+    if(ENFORCE){
+      lsSet("bf_prem_since", String(Date.now()));
+      if(window.bfLic && window.bfLic.recheck){ try{ window.bfLic.recheck(); }catch(e){} }
+      else { var st = licState() || {trial:false, exp:0, t:Date.now(), dev:true}; st.tier = "premium"; st.since = Date.now(); st.down = 0; lsSet(LIC_STATE_LS, JSON.stringify(st)); }
+    }
     EDITION = "pro"; state.modal = null; state.premiumHl = true; state.screen = "settings";
     render(); showPremiumThanks();
   }
@@ -12044,7 +12248,7 @@ var qrcode = function() {
     }, true);
     document.addEventListener("dragstart", function(e){ if(e.target.closest && e.target.closest(".feat-tab")) e.preventDefault(); }, true);
   })();
-  var SETTINGS_MODAL_TYPES = { featuresPicker:1, pixConfig:1, themePicker:1, removePassword:1, confirmImport:1, confirmResetData:1, confirmResetPassword:1, advCfg:1, advPeriod:1, advLayout:1, advLayoutReset:1 };
+  var SETTINGS_MODAL_TYPES = { downgradeInfo:1, downgradePw:1, featuresPicker:1, pixConfig:1, themePicker:1, removePassword:1, confirmImport:1, confirmResetData:1, confirmResetPassword:1, advCfg:1, advPeriod:1, advLayout:1, advLayoutReset:1 };
   document.addEventListener("click", function(e){
     var btn = e.target && e.target.closest ? e.target.closest("button, [data-action='pick-theme'], [data-action='cycle-theme-page'], [data-action='bil-bot'], [data-action='bil-bot-next'], [data-action='avu-bot'], [data-action='avu-bot-next'], [data-action='alerts-toggle-visual']") : null;
     if(!btn) return;
@@ -12060,6 +12264,9 @@ var qrcode = function() {
   applyTheme();
   render();
   subSyncTime();
+  licCheck();
+  setInterval(licCheck, 30000);
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) licCheck(); });
   setInterval(updateBilharTimers, 1000);
   // comanda dinâmica de partida por hora: tempo e valor correm dentro dela
   setInterval(function(){

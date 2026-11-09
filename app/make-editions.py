@@ -2,9 +2,12 @@
 import sys
 src=open('/home/claude/barapp40/index.html',encoding='utf-8').read()
 assert 'var EDITION = "pro";' in src
-open('/home/claude/barapp40/index-pro.html','w',encoding='utf-8').write(src)
-open('/home/claude/barapp40/index-basic.html','w',encoding='utf-8').write(src.replace('var EDITION = "pro";','var EDITION = "basic";'))
-open('/home/claude/barapp40/index-mobile.html','w',encoding='utf-8').write(src.replace('var MOBILE = false;','var MOBILE = true;'))
+E='var ENFORCE = false;'
+assert E in src
+src_e=src.replace(E,'var ENFORCE = true;')  # edições vendidas: teste de 7 dias + assinatura
+open('/home/claude/barapp40/index-pro.html','w',encoding='utf-8').write(src_e)
+open('/home/claude/barapp40/index-basic.html','w',encoding='utf-8').write(src_e.replace('var EDITION = "pro";','var EDITION = "basic";'))
+open('/home/claude/barapp40/index-mobile.html','w',encoding='utf-8').write(src_e.replace('var MOBILE = false;','var MOBILE = true;'))
 open('/home/claude/barapp40/index-demo.html','w',encoding='utf-8').write(src.replace('var MOBILE = false;','var MOBILE = true;').replace('var DEMO = false;','var DEMO = true;'))
 
 base=src.replace('var TUTORIAL = false;','var TUTORIAL = true;')
@@ -18,6 +21,6 @@ open('/home/claude/barapp40/index-splash-pc.html','w',encoding='utf-8').write(sp
 open('/home/claude/barapp40/index-splash-mobile.html','w',encoding='utf-8').write(sp.replace('var MOBILE = false;','var MOBILE = true;'))
 
 # edições finais "sem avulsas" (a partir da Premium)
-na=src.replace('var NOAVU = false;','var NOAVU = true;').replace('var EDITION = "pro";','var EDITION = "basic";')  # nasce travada: o botão "Atualizar para premium" libera tudo
+na=src_e.replace('var NOAVU = false;','var NOAVU = true;').replace('var EDITION = "pro";','var EDITION = "basic";')  # nasce travada: o botão "Atualizar para premium" libera tudo
 open('/home/claude/barapp40/index-final-pc.html','w',encoding='utf-8').write(na)
 open('/home/claude/barapp40/index-final-mobile.html','w',encoding='utf-8').write(na.replace('var MOBILE = false;','var MOBILE = true;'))

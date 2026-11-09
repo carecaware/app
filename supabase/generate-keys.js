@@ -11,12 +11,16 @@
 
 const crypto = require("crypto");
 
-const platform = process.argv[2];
-const count = parseInt(process.argv[3] || "1", 10);
-const customerName = process.argv[4] || null;
+const args = process.argv.slice(2);
+function flag(name) { const i = args.indexOf(name); if (i < 0) return null; const v = args[i + 1]; args.splice(i, 2); return v; }
+const tier = flag("--tier") || "premium";           // basic | premium
+const trial = flag("--trial");                       // dias de teste (ex.: 7)
+const platform = args[0];
+const count = parseInt(args[1] || "1", 10);
+const customerName = args[2] || null;
 
-if (!platform || !["windows", "mobile"].includes(platform)) {
-  console.error('Uso: node generate-keys.js <windows|mobile> <quantidade> ["Nome do Cliente"]');
+if (!platform || !["windows", "mobile", "web"].includes(platform) || !["basic", "premium"].includes(tier) || (trial && !(parseInt(trial, 10) > 0))) {
+  console.error('Uso: node generate-keys.js <windows|mobile|web> <quantidade> ["Nome do Cliente"] [--tier basic|premium] [--trial 7]');
   process.exit(1);
 }
 
@@ -33,11 +37,11 @@ function makeKey() {
   return groups.join("-");
 }
 
-console.log(`-- ${count} chave(s) para a plataforma "${platform}" — cole no SQL Editor do Supabase:\n`);
+console.log(`-- ${count} chave(s) "${platform}" ${trial ? "de TESTE de " + trial + " dias" : "tipo " + tier} — cole no SQL Editor do Supabase:\n`);
 for (let i = 0; i < count; i++) {
   const key = makeKey();
   const nameVal = customerName ? `'${customerName.replace(/'/g, "''")}'` : "null";
   console.log(
-    `insert into licenses (license_key, platform, customer_name) values ('${key}', '${platform}', ${nameVal});`
+    `insert into licenses (license_key, platform, customer_name, tier, trial_days) values ('${key}', '${platform}', ${nameVal}, '${tier}', ${trial ? parseInt(trial, 10) : "null"});`
   );
 }

@@ -50,6 +50,8 @@ Deno.serve(async (req) => {
       if (e4) return json({ valid: false, reason: "server_error" });
       if (!upd || !upd.length) return json({ valid: false, reason: "already_used" });
     }
+    // nova assinatura premium: cancela qualquer volta para a básica que estivesse agendada
+    await sb.from("licenses").update({ downgrade_at: null }).eq("id", lic.id);
     return json({ valid: true });
   } catch (_e) {
     return json({ valid: false, reason: "server_error" });

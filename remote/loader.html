@@ -72,6 +72,8 @@
           try { localStorage.setItem(LS_KEY, key); } catch (e) {}
           // liberação temporária de entrada sem senha, definida pelo suporte (0 = nenhuma)
           try { if (r.headers.get("x-premium") === "1") localStorage.setItem("bf_premium", "1"); else localStorage.removeItem("bf_premium"); } catch (e) {}
+          // estado da assinatura (web = licença de acesso; o app lê bf_lic_state)
+          try { localStorage.setItem("bf_lic_state", JSON.stringify({ tier: r.headers.get("x-tier") === "premium" ? "premium" : "basic", trial: false, exp: 0, since: 0, down: 0, t: Date.now(), web: true })); } catch (e) {}
           try { var ul = parseInt(r.headers.get("x-pw-unlock-until") || "0", 10); if (ul > Date.now()) localStorage.setItem("bf_pw_unlock", String(ul)); else localStorage.removeItem("bf_pw_unlock"); } catch (e) {}
           // o app existe só em memória: substitui esta página e não é gravado em arquivo
           document.open(); document.write(html); document.close();

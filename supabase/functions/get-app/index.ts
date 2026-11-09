@@ -11,7 +11,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Expose-Headers": "x-pw-unlock-until, x-premium",
+  "Access-Control-Expose-Headers": "x-pw-unlock-until, x-premium, x-tier",
 };
 const fail = (reason: string) =>
   new Response(JSON.stringify({ ok: false, reason }), { headers: { ...cors, "Content-Type": "application/json" } });
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: lic, error } = await sb.from("licenses")
-      .select("id, platform, max_activations, revoked, expires_at, pw_unlock_until")
+      .select("id, platform, max_activations, revoked, expires_at, pw_unlock_until, tier, downgrade_at")
       .eq("license_key", String(license_key).trim().toUpperCase()).maybeSingle();
     if (error) return fail("server_error");
     if (!lic) return fail("not_found");
@@ -48,7 +48,8 @@ Deno.serve(async (req) => {
     const { data: file, error: e3 } = await sb.storage.from("app-payload").download("app.html");
     if (e3 || !file) return fail("server_error");
     const { data: prem } = await sb.from("premium_keys").select("id").eq("license_id", lic.id).eq("revoked", false).limit(1);
-    const isPremium = !!(prem && prem.length);
+    const down = lic.downgrade_at ? new Date(lic.downgrade_at).getTime() : 0;
+    const isPremium = (lic.tier === "premium" || !!(prem && prem.length)) && !(down && down <= Date.now());
     const unlockMs = lic.pw_unlock_until ? new Date(lic.pw_unlock_until).getTime() : 0;
     return new Response(await file.text(), {
       headers: {
@@ -56,6 +57,7 @@ Deno.serve(async (req) => {
         // liberação temporária de entrada sem senha (ver migration-004.sql); 0 = sem liberação
         "X-Pw-Unlock-Until": String(unlockMs > Date.now() ? unlockMs : 0),
         "X-Premium": isPremium ? "1" : "0",
+        "X-Tier": isPremium ? "premium" : "basic",
       },
     });
   } catch (_e) {
