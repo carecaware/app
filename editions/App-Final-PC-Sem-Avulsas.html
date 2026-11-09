@@ -1429,10 +1429,11 @@
   }
   function licStatusText(){
     var inf = licInfo();
-    if(inf.mode==="trial") return "Assinatura: Período de Teste";
     if(inf.mode==="premium") return "Assinatura VIP";
     if(inf.mode==="basic") return (EDITION!=="basic" ? "Assinatura VIP" : "Assinatura Básica");
-    return "Sem assinatura";
+    // teste (chave de 7 dias) ou sem chave/vencido (ex.: tela de ativação pulada): dias que faltam até o bloqueio automático
+    var d = (inf.mode==="trial" && inf.left>0) ? Math.ceil(inf.left/86400000) : 0;
+    return "Versão de Teste - "+d+(d===1 ? " dia sobrando" : " dias sobrando");
   }
   function licReason(r){
     return ({not_found:"Chave não encontrada. Confira se digitou exatamente como recebeu.", revoked:"Esta chave foi desativada. Fale com o suporte.", expired:"Esta chave expirou.",
