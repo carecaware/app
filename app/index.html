@@ -11630,7 +11630,7 @@ var qrcode = function() {
     var items = data.items.filter(function(i){ return i.sellPrice!=null; });
     if(!q.itemId || !items.some(function(i){ return i.id===q.itemId; })) q.itemId = items[0] ? items[0].id : null;
     var total = qsTotal();
-    var html = '<h2 style="font-size:calc(18px*var(--fs,1));margin-bottom:18px;">Venda Rápida</h2>';
+    var html = backArrowBtn() + '<h2 style="font-size:calc(18px*var(--fs,1));margin-bottom:18px;">Venda Rápida</h2>';
     html += '<div class="card">';
     if(!items.length){
       html += '<div class="empty">Cadastre itens com preço de venda no estoque primeiro.</div>';
