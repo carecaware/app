@@ -111,7 +111,7 @@
 
   // Só derruba a assinatura quando o servidor responde de forma DEFINITIVA.
   // Erro temporário, sem internet ou resposta estranha: mantém o estado gravado.
-  var DEFINITIVE = { revoked: 1, not_found: 1, wrong_platform: 1, expired: 1 };
+  var DEFINITIVE = { revoked: 1, not_found: 1, wrong_platform: 1 };
 
   function dropLicense() {
     try { localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_STATE); localStorage.removeItem(LS_VALID_UNTIL); localStorage.removeItem("bf_premium"); } catch (e) {}
@@ -122,6 +122,11 @@
     if (!key) return Promise.resolve();
     return callValidate(key, getDeviceId()).then(function (res) {
       if (res && res.valid) { extendCache(); noteUnlock(res); }
+      else if (res && res.reason === "expired") {
+        // chave de teste vencida: o app mostra "Seu período de teste acabou"
+        try { var st = JSON.parse(localStorage.getItem(LS_STATE) || "{}"); st.exp = Date.now() - 1; st.trial = true; localStorage.setItem(LS_STATE, JSON.stringify(st)); localStorage.removeItem("bf_premium"); } catch (e) {}
+        window.dispatchEvent(new CustomEvent("bf-lic-changed"));
+      }
       else if (res && DEFINITIVE[res.reason]) {
         dropLicense();
         window.dispatchEvent(new CustomEvent("bf-lic-changed"));

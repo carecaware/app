@@ -1397,7 +1397,7 @@
   // - Chave básica/premium (Supabase): o servidor diz o tipo; a chave de 7 dias (trial) expira sozinha.
   // - Limite conhecido: limpar os dados do app/reinstalar reinicia o teste local; só a chave de 7 dias do servidor é à prova disso.
   var LIC_STATE_LS = "bf_lic_state", LIC_T0_LS = "bf_trial0", LIC_SEEN_LS = "bf_seen", TRIAL_MS = 7*86400000;
-  var LIC_DEV_KEYS = {"BARFACIL-BASICA-2026":"basic", "BARFACIL-PREMIUM-2026":"premium"};
+  var LIC_DEV_KEYS = {"BARFACIL-TESTE-2026":"trial", "BARFACIL-BASICA-2026":"basic", "BARFACIL-PREMIUM-2026":"premium"};
   var WA_PHONE = "(11) 93060-7881", WA_LINK = "https://wa.me/5511930607881";
   function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function lsSet(k,v){ try{ localStorage.setItem(k, v); }catch(e){} }
@@ -1412,16 +1412,13 @@
       if(tier==="premium" && !st.trial && down && now>=down) tier = "basic";
       return {mode: st.trial ? "trial" : tier, tier:tier, st:st, down: (tier==="premium"?down:0), left: st.trial&&st.exp ? st.exp-now : 0};
     }
-    var t0 = parseInt(lsGet(LIC_T0_LS)||"0",10)||0;
-    if(!t0 || t0>now){ t0 = now; lsSet(LIC_T0_LS, String(t0)); }
-    var left = t0 + TRIAL_MS - now;
-    if(left>0) return {mode:"trial", tier: BUILD_EDITION==="basic" ? "basic" : "premium", left:left, st:null};
-    return {mode:"expired", tier:"basic", st:null};
+    // sem chave nenhuma: não há teste livre, é preciso ativar uma chave (teste de 7 dias, básica ou premium)
+    return {mode:"none", tier:"basic", st:null};
   }
   function licApply(){
     if(!ENFORCE){ try{ if(EDITION==="basic" && lsGet(PREMIUM_LS)==="1") EDITION = "pro"; }catch(e){} return; }
     var inf = licInfo();
-    if(inf.mode==="expired"){ EDITION = "basic"; return; }
+    if(inf.mode==="expired" || inf.mode==="none"){ EDITION = "basic"; return; }
     var prem = inf.tier==="premium";
     // chave premium resgatada sobre uma assinatura básica (ou durante o teste) libera o premium
     if(!prem && lsGet(PREMIUM_LS)==="1" && !(inf.st && inf.st.tier==="premium")) prem = true;
@@ -1433,7 +1430,7 @@
     if(inf.mode==="trial") return "Assinatura: Período de Teste";
     if(inf.mode==="premium") return "Assinatura VIP";
     if(inf.mode==="basic") return (EDITION!=="basic" ? "Assinatura VIP" : "Assinatura Básica");
-    return "Assinatura: Período de Teste";
+    return "Sem assinatura";
   }
   function licReason(r){
     return ({not_found:"Chave não encontrada. Confira se digitou exatamente como recebeu.", revoked:"Esta chave foi desativada. Fale com o suporte.", expired:"Esta chave expirou.",
@@ -1447,9 +1444,10 @@
     var t = null;
     for(var k in LIC_DEV_KEYS){ if(premiumKeyNorm(k)===premiumKeyNorm(key)) t = LIC_DEV_KEYS[k]; }
     if(!t) return Promise.resolve({valid:false, reason:"not_found"});
-    lsSet(LIC_STATE_LS, JSON.stringify({tier:t, trial:false, exp:0, since:Date.now(), down:0, t:Date.now(), dev:true}));
-    if(t==="premium") lsSet(PREMIUM_LS, "1"); else { try{ localStorage.removeItem(PREMIUM_LS); }catch(e){} }
-    return Promise.resolve({valid:true, tier:t});
+    var tr = t==="trial";
+    lsSet(LIC_STATE_LS, JSON.stringify({tier: tr ? "premium" : t, trial:tr, exp: tr ? Date.now()+TRIAL_MS : 0, since:Date.now(), down:0, t:Date.now(), dev:true}));
+    if(t==="premium" || tr) lsSet(PREMIUM_LS, "1"); else { try{ localStorage.removeItem(PREMIUM_LS); }catch(e){} }
+    return Promise.resolve({valid:true, tier: tr ? "premium" : t, trial:tr});
   }
   // próximo dia de faturamento (mesmo dia do mês em que o premium começou), a partir de amanhã
   function licBillingStart(since){
@@ -1482,9 +1480,9 @@
   }
   function licWallHtml(){
     return '<div class="lw-box"><div class="lw-logo">Bar<span>Fácil</span></div>'
-      + '<h2>Seu período de teste acabou.</h2>'
-      + '<p>Se quiser adquirir uma assinatura, entre em contato com seu representante de vendas ou acione nossa central - <a href="'+WA_LINK+'" target="_blank" rel="noopener">'+WA_PHONE+'</a> (Whatsapp).</p>'
-      + '<label for="lw-key">Já tenho uma chave de assinatura.</label>'
+      + (licInfo().mode==="expired" ? '<h2>Seu período de teste acabou.</h2>' : '<h2>Ative o BarFácil</h2>')
+      + '<p>'+(licInfo().mode==="expired" ? '' : 'Para usar o app, digite a chave que você recebeu (teste de 7 dias ou assinatura). ')+'Se quiser adquirir uma assinatura, entre em contato com seu representante de vendas ou acione nossa central - <a href="'+WA_LINK+'" target="_blank" rel="noopener">'+WA_PHONE+'</a> (Whatsapp).</p>'
+      + '<label for="lw-key">'+(licInfo().mode==='expired' ? 'Já tenho uma chave de assinatura.' : 'Minha chave')+'</label>'
       + '<input id="lw-key" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" enterkeyhint="go">'
       + '<button type="button" id="lw-go" class="lw-go" disabled>Ativar</button>'
       + '<div class="lw-msg" id="lw-msg"></div>'
@@ -1535,7 +1533,7 @@
   function licCheck(){
     if(!ENFORCE) return;
     var inf = licInfo();
-    if(inf.mode==="expired"){ licApply(); licShowWall(); }
+    if(inf.mode==="expired" || inf.mode==="none"){ licApply(); licShowWall(); }
     else { var w = document.getElementById("lic-wall"); if(w) w.remove(); }
   }
   licApply();
