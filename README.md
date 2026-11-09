@@ -2,6 +2,7 @@
 
 | Pasta | O que é |
 |---|---|
+| `editions/` | App Final PC e Mobile (Sem Avulsas), já gerados (edições vendidas: pedem chave de assinatura) |
 | `app/` | HTML mestre (`index.html`) e `make-editions.py`, que gera as edições (Premium, Básico, Mobile, Demo, Tutorial, Splash) |
 | `desktop/` | Projeto Electron do instalador Windows (BarFácil) |
 | `splash-demo/` | Instalador Splash Demo BarFácil PC |
