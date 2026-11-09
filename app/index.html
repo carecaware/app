@@ -1398,6 +1398,8 @@
   // - Limite conhecido: limpar os dados do app/reinstalar reinicia o teste local; só a chave de 7 dias do servidor é à prova disso.
   var LIC_STATE_LS = "bf_lic_state", LIC_T0_LS = "bf_trial0", LIC_SEEN_LS = "bf_seen", TRIAL_MS = 7*86400000;
   var LIC_DEV_KEYS = {"BARFACIL-TESTE-2026":"trial", "BARFACIL-BASICA-2026":"basic", "BARFACIL-PREMIUM-2026":"premium"};
+  var LIC_BYPASS_BTN = true; // PROVISÓRIO: botão que pula a tela de ativação (volte para false antes de vender)
+  var licBypassed = false;
   var WA_PHONE = "(11) 93060-7881", WA_LINK = "https://wa.me/5511930607881";
   function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function lsSet(k,v){ try{ localStorage.setItem(k, v); }catch(e){} }
@@ -1486,7 +1488,8 @@
       + '<input id="lw-key" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" enterkeyhint="go">'
       + '<button type="button" id="lw-go" class="lw-go" disabled>Ativar</button>'
       + '<div class="lw-msg" id="lw-msg"></div>'
-      + '<button type="button" id="lw-rel" class="lw-rel" style="display:none">Usar neste aparelho (desativar o antigo)</button></div>';
+      + '<button type="button" id="lw-rel" class="lw-rel" style="display:none">Usar neste aparelho (desativar o antigo)</button>'
+      + (LIC_BYPASS_BTN ? '<button type="button" id="lw-bypass" class="lw-rel" style="opacity:.7;border-style:dashed">Pular (provisório)</button>' : '') + '</div>';
   }
   function licShowWall(){
     var w = document.getElementById("lic-wall");
@@ -1509,6 +1512,7 @@
       }).catch(function(){ msg.className = "lw-msg err"; msg.textContent = "Não foi possível conectar. Verifique a internet e tente de novo."; sync(); });
     }
     go.addEventListener("click", function(){ submit(); });
+    var byp = w.querySelector("#lw-bypass"); if(byp) byp.addEventListener("click", function(){ licBypassed = true; w.remove(); render(); });
     inp.addEventListener("keydown", function(e){ if(e.key==="Enter") submit(); });
     rel.addEventListener("click", function(){ if(pend && window.confirm("O aparelho antigo deixará de funcionar com esta chave. Continuar?")) submit("release"); });
     setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 50);
@@ -1531,7 +1535,7 @@
   }
   // confere o estado: mostra a tela de teste encerrado sempre que estiver vencido e sem assinatura
   function licCheck(){
-    if(!ENFORCE) return;
+    if(!ENFORCE || licBypassed) return;
     var inf = licInfo();
     if(inf.mode==="expired" || inf.mode==="none"){ licApply(); licShowWall(); }
     else { var w = document.getElementById("lic-wall"); if(w) w.remove(); }
@@ -2843,7 +2847,7 @@
         + (featOn("bilhar") ? '<button type="button" class="chip'+(state.comandaBilharFirst?' active':'')+'" data-action="toggle-bilhar-first" title="Comandas de bilhar com valor pendente no topo">Bilhar</button>' : '')
         + '<button type="button" class="chip'+(state.comandaDevendoFirst?' active':'')+'" data-action="toggle-devendo-first" title="Quem deve mais dinheiro no topo">Devendo</button>'
         + '<span style="display:inline-flex;align-items:center;gap:0;" title="Ordenar pelo moral do cliente">'
-        + ["red","yellow","green","none"].map(function(col){ return '<button type="button" class="status-icon-btn moral-btn'+(moral===col?' moral-on':'')+'" data-action="moral-sort" data-m="'+col+'" style="'+(col==="none"?'color:var(--text-dim);':'')+'" title="'+(col==="red"?'Vermelhos primeiro':col==="yellow"?'Amarelos primeiro':col==="green"?'Verdes primeiro':'Sem moral primeiro')+'">'+mIco(col)+'</button>'; }).join("")
+        + ["red","yellow","green","none"].map(function(col){ return '<button type="button" class="status-icon-btn moral-btn'+(moral===col?' moral-on':'')+'" data-action="moral-sort" data-m="'+col+'" style="'+(col==="none"?'color:var(--text-dim);':'')+'" title="'+(col==="red"?'Vermelhos primeiro':col==="yellow"?'Amarelos primeiro':col==="green"?'Verdes primeiro':'Indefinido primeiro')+'">'+mIco(col)+'</button>'; }).join("")
         + '</span></div></div>'
         + rows+'</div>';
     }
