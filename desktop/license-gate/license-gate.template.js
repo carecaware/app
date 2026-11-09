@@ -25,12 +25,18 @@
   var LS_VALID_UNTIL = "license_valid_until_v1";
   var LS_PW_UNLOCK = "bf_pw_unlock"; // até quando o suporte liberou a entrada sem senha (ms)
 
+  // configuração que o app usa para ativar a chave premium (função redeem-premium)
+  window.bfCfg = { url: "__SUPABASE_URL__", anon: SUPABASE_ANON_KEY, getKey: function () { try { return localStorage.getItem(LS_KEY) || ""; } catch (e) { return ""; } }, getDevice: function () { return getDeviceId(); } };
+
   // o suporte libera a entrada sem senha pelo Supabase (coluna pw_unlock_until); o app lê este valor
   function noteUnlock(res) {
     try {
       if (res && res.valid) {
         if (res.unlock_until) localStorage.setItem(LS_PW_UNLOCK, String(res.unlock_until));
         else localStorage.removeItem(LS_PW_UNLOCK);
+        // premium: o app Básico vira Premium quando a licença tem uma chave premium (ver migration-005.sql)
+        if (res.premium) localStorage.setItem("bf_premium", "1");
+        else localStorage.removeItem("bf_premium");
       }
     } catch (e) {}
   }

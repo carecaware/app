@@ -321,7 +321,7 @@
   .feat-tabs{position:fixed;left:0;bottom:92px;z-index:900;display:flex;flex-direction:column;gap:6px;}
   .feat-tab{width:34px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--bg-elev-2);color:var(--accent);border:1px solid var(--accent);border-left:none;border-radius:0 10px 10px 0;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer;padding:0;transition:width .15s;}
   .feat-tab:hover{width:42px;}
-  .feat-tabs:not(.bar):not(.trad-feats) .feat-tab{justify-content:flex-end;padding-right:6px;box-shadow:inset 0 2px 0 var(--accent),0 2px 8px rgba(0,0,0,.35);}
+  .feat-tabs:not(.bar):not(.trad-feats) .feat-tab{justify-content:flex-end;padding-right:6px;border-color:var(--border);box-shadow:inset 0 2px 0 var(--accent),0 2px 8px rgba(0,0,0,.35);}
   .feat-tabs:not(.bar) .feat-tab{touch-action:none;}
   .feat-tab.shifting{transition:transform .15s;}
   .feat-tabs.bar::-webkit-scrollbar{display:none;}
@@ -885,8 +885,10 @@
   "use strict";
   // edição do programa: "pro" (completa: recursos extras + até 5 QR Codes) ou "basic" (sem recursos extras, 1 QR Code)
   var EDITION = "pro";
-  var PREMIUM_KEYS = ["BARFACIL-PREMIUM-2026"]; // PROVISÓRIO: trocar pelas chaves reais
-  var PREMIUM_LS = "bf_premium_key";
+  // Premium: com licença (Windows/celular/web) a chave é validada no Supabase (função redeem-premium) e
+  // o estado vem da própria licença. Só em cópias SEM licença (HTML de teste) vale a chave de teste abaixo.
+  var PREMIUM_DEV_KEYS = ["BARFACIL-PREMIUM-2026"];
+  var PREMIUM_LS = "bf_premium";
   var MOBILE = false;
   var DEMO = false;
   var TUTORIAL = false;
@@ -1362,9 +1364,10 @@
 
   var data = loadData();
   try{ bilharSyncComandas(); }catch(e){}
-  function premiumKeyNorm(k){ return String(k||"").replace(/\s+/g,"").toUpperCase(); }
-  function premiumKeyOk(k){ k = premiumKeyNorm(k); return !!k && PREMIUM_KEYS.some(function(x){ return premiumKeyNorm(x)===k; }); }
-  try{ if(EDITION==="basic" && premiumKeyOk(localStorage.getItem(PREMIUM_LS))) EDITION = "pro"; }catch(e){}
+  function premiumKeyNorm(k){ return String(k||"").replace(/[\s-]+/g,"").toUpperCase(); }
+  function premiumKeyDev(k){ k = premiumKeyNorm(k); return !!k && PREMIUM_DEV_KEYS.some(function(x){ return premiumKeyNorm(x)===k; }); }
+  function premiumKeyFmt(k){ var c = premiumKeyNorm(k), o = []; for(var i=0;i<c.length;i+=4) o.push(c.slice(i,i+4)); return o.join("-"); }
+  try{ if(EDITION==="basic" && localStorage.getItem(PREMIUM_LS)==="1") EDITION = "pro"; }catch(e){}
 
   // ---------- state ----------
   var state = {
@@ -10585,13 +10588,42 @@ var qrcode = function() {
     focusModalInput();
   }
 
+  function premiumDone(){
+    try{ localStorage.setItem(PREMIUM_LS, "1"); }catch(e){}
+    EDITION = "pro"; state.modal = null; state.premiumHl = true; state.screen = "settings";
+    render(); showPremiumThanks();
+  }
+  function premiumFail(k, msg){ state.modal = {type:"upgradePremium", key:k, error:msg}; render(); }
   function submitUpgrade(){
     var m = state.modal; if(!m || m.type!=="upgradePremium" || !isAdmin()) return;
     var inp = document.getElementById("up-key"), k = inp ? inp.value : "";
-    if(!premiumKeyOk(k)){ state.modal = {type:"upgradePremium", key:k, error:"Chave inválida. Confira se digitou exatamente como recebeu."}; render(); return; }
-    try{ localStorage.setItem(PREMIUM_LS, premiumKeyNorm(k)); }catch(e){}
-    EDITION = "pro"; state.modal = null; state.premiumHl = true; state.screen = "settings";
-    render(); showPremiumThanks();
+    if(!premiumKeyNorm(k)) return premiumFail(k, "Digite a chave premium.");
+    var cfg = window.bfCfg;
+    if(!cfg || !cfg.url){
+      // sem licença (HTML de teste): só a chave de teste
+      if(premiumKeyDev(k)) return premiumDone();
+      return premiumFail(k, "Chave inválida. Confira se digitou exatamente como recebeu.");
+    }
+    var btn = document.querySelector('[data-action="modal-submit-upgrade"]');
+    if(btn){ btn.disabled = true; btn.textContent = "Verificando…"; }
+    var lic = "", dev = "";
+    try{ lic = cfg.getKey(); dev = cfg.getDevice(); }catch(e){}
+    fetch(cfg.url + "/functions/v1/redeem-premium", {
+      method:"POST", cache:"no-store",
+      headers:{"Content-Type":"application/json", "apikey":cfg.anon, "Authorization":"Bearer "+cfg.anon},
+      body: JSON.stringify({premium_key: premiumKeyNorm(k).replace(/(.{4})(?=.)/g,"$1-"), license_key: lic, device_id: dev})
+    }).then(function(r){ return r.json(); }).then(function(j){
+      if(j && j.valid) return premiumDone();
+      var why = {
+        not_found:"Chave inválida. Confira se digitou exatamente como recebeu.",
+        revoked:"Esta chave foi cancelada. Fale com o suporte.",
+        already_used:"Esta chave já foi usada em outra licença.",
+        no_license:"Não foi possível identificar a sua licença. Feche e abra o app e tente de novo.",
+        device_not_activated:"Este aparelho ainda não está ativado. Feche e abra o app e tente de novo.",
+        bad_request:"Digite a chave premium completa."
+      }[j && j.reason] || "Servidor indisponível no momento. Tente de novo em instantes.";
+      premiumFail(k, why);
+    }).catch(function(){ premiumFail(k, "Não foi possível conectar. Verifique a internet e tente de novo."); });
   }
   function showPremiumThanks(){
     var o = document.createElement("div");

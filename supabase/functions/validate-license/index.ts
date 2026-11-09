@@ -39,8 +39,11 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
     // liberação temporária de entrada sem senha (definida pelo suporte; ver migration-004.sql)
     const unlockMs = license.pw_unlock_until ? new Date(license.pw_unlock_until).getTime() : 0;
+    // premium: existe uma chave premium (não cancelada) usada por esta licença? (ver migration-005.sql)
+    const { data: prem } = await supabase.from("premium_keys").select("id").eq("license_id", license.id).eq("revoked", false).limit(1);
+    const isPremium = !!(prem && prem.length);
     const okRes = (extra: Record<string, unknown> = {}) =>
-      json({ valid: true, ...(unlockMs > Date.now() ? { unlock_until: unlockMs } : {}), ...extra });
+      json({ valid: true, premium: isPremium, ...(unlockMs > Date.now() ? { unlock_until: unlockMs } : {}), ...extra });
     const { data: acts, error: e2 } = await supabase
       .from("license_activations").select("id, device_id").eq("license_id", license.id);
     if (e2) return json({ valid: false, reason: "server_error" });

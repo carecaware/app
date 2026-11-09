@@ -29,6 +29,8 @@
   var FN = "__SUPABASE_URL__/functions/v1/get-app";
   var ANON = "__SUPABASE_ANON_KEY__";
   var LS_KEY = "bf_web_key_v1", LS_DEV = "bf_web_device_v1";
+  // configuração que o app usa para ativar a chave premium (função redeem-premium)
+  window.bfCfg = { url: "__SUPABASE_URL__", anon: ANON, getKey: function () { try { return localStorage.getItem(LS_KEY) || ""; } catch (e) { return ""; } }, getDevice: function () { return deviceId(); } };
   var input = document.getElementById("key"), btn = document.getElementById("go"), msg = document.getElementById("msg");
 
   function deviceId() {
@@ -69,6 +71,7 @@
         return r.text().then(function (html) {
           try { localStorage.setItem(LS_KEY, key); } catch (e) {}
           // liberação temporária de entrada sem senha, definida pelo suporte (0 = nenhuma)
+          try { if (r.headers.get("x-premium") === "1") localStorage.setItem("bf_premium", "1"); else localStorage.removeItem("bf_premium"); } catch (e) {}
           try { var ul = parseInt(r.headers.get("x-pw-unlock-until") || "0", 10); if (ul > Date.now()) localStorage.setItem("bf_pw_unlock", String(ul)); else localStorage.removeItem("bf_pw_unlock"); } catch (e) {}
           // o app existe só em memória: substitui esta página e não é gravado em arquivo
           document.open(); document.write(html); document.close();
